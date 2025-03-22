@@ -9,6 +9,7 @@ const earningsRoutes = require('./src/routes/earningsRoutes');
 const hoursRoutes = require('./src/routes/hoursRoutes');
 const activityRoutes = require('./src/routes/activityRoutes');
 const entryExitRoutes = require('./src/routes/entryExitRoutes');
+const jobRoutes = require('./src/routes/jobRoutes');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/earnings', earningsRoutes);
 app.use('/api/hours', hoursRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/entry-exit', entryExitRoutes);
+app.use('/api/jobs', jobRoutes);
 
 // Test Database Connection
 db.connect(err => {

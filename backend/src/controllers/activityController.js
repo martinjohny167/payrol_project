@@ -18,6 +18,28 @@ const timeEntryController = {
     }
   },
 
+  // Get single time entry by ID
+  getTimeEntryById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const query = 'SELECT * FROM time_entry WHERE id = ?';
+      
+      db.query(query, [id], (err, results) => {
+        if (err) {
+          console.error('Error fetching time entry:', err);
+          return res.status(500).json({ error: 'Failed to fetch time entry' });
+        }
+        if (results.length === 0) {
+          return res.status(404).json({ error: 'Time entry not found' });
+        }
+        res.json(results[0]);
+      });
+    } catch (error) {
+      console.error('Error in getTimeEntryById:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
   // Create new time entry
   createTimeEntry: async (req, res) => {
     try {

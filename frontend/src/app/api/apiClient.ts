@@ -1,6 +1,11 @@
 import axios from 'axios';
 
 // Define interfaces for your data types
+interface Job {
+  id: number;
+  name: string;
+}
+
 interface TimeEntry {
   id?: number;
   user_id: number;
@@ -58,6 +63,18 @@ apiClient.interceptors.response.use(
 
 // API endpoints with type safety
 export const api = {
+  // Job endpoints
+  jobs: {
+    getAll: () => {
+      console.log('Calling getAll jobs with URL:', `${baseURL}/api/jobs`);
+      return apiClient.get<Job[]>('/api/jobs');
+    },
+    getById: (id: number) => {
+      console.log('Calling getById job with URL:', `${baseURL}/api/jobs/${id}`);
+      return apiClient.get<Job>(`/api/jobs/${id}`);
+    }
+  },
+
   // Time Entry endpoints
   timeEntry: {
     getAll: () => {
@@ -119,5 +136,5 @@ export const api = {
   },
 };
 
-export type { TimeEntry, EntryExit, DailyStat, Hours, Earnings };
+export type { Job, TimeEntry, EntryExit, DailyStat, Hours, Earnings };
 export default apiClient; 

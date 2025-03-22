@@ -5,6 +5,9 @@ const timeEntryController = require('../controllers/activityController');
 // Get all time entries
 router.get('/', timeEntryController.getAllTimeEntries);
 
+// Get single time entry by ID
+router.get('/:id', timeEntryController.getTimeEntryById);
+
 // Create new time entry
 router.post('/', timeEntryController.createTimeEntry);
 
