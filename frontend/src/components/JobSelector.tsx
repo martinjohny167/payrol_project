@@ -18,6 +18,12 @@ export default function JobSelector({ onJobSelect }: JobSelectorProps) {
       try {
         const response = await api.jobs.getAll();
         setJobs(response.data);
+        
+        // Set the first job as selected if available
+        if (response.data.length > 0) {
+          setSelectedJob(response.data[0].id);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error('Error fetching jobs:', err);
@@ -36,66 +42,42 @@ export default function JobSelector({ onJobSelect }: JobSelectorProps) {
 
   if (loading) {
     return (
-      <div className="animate-pulse bg-gray-200 rounded-lg p-4">
-        <div className="h-8 bg-gray-300 rounded w-48"></div>
+      <div className="animate-pulse bg-gray-100 rounded-lg p-4 flex items-center justify-center">
+        <div className="h-2 bg-gray-300 rounded w-24"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+      <div className="bg-red-50 text-red-600 p-2 rounded-lg text-xs">
         {error}
       </div>
     );
   }
+  
+  // Get the current job name
+  const currentJob = jobs.find(job => job.id === selectedJob);
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm">
-      <div className="flex flex-col space-y-2">
-        <h3 className="text-gray-700 font-medium mb-2">Select Job:</h3>
-        <div className="flex items-center space-x-4">
-          {jobs.map((job) => (
-            <button
-              key={job.id}
-              onClick={() => setSelectedJob(job.id)}
-              className={`relative flex items-center justify-center ${
-                selectedJob === job.id 
-                  ? 'text-blue-600' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              aria-label={`Select ${job.name}`}
-              title={job.name}
-            >
-              {/* Dot */}
-              <div 
-                className={`h-4 w-4 rounded-full ${
-                  selectedJob === job.id 
-                    ? 'bg-blue-600' 
-                    : 'bg-gray-300 hover:bg-gray-400'
-                }`}
-              ></div>
-              
-              {/* Job name below the dot */}
-              <span 
-                className={`absolute mt-6 text-xs whitespace-nowrap ${
-                  selectedJob === job.id 
-                    ? 'font-medium' 
-                    : ''
-                }`}
-              >
-                {job.name}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      {/* Display current selected job */}
-      <div className="mt-4 pt-2 border-t border-gray-100">
-        <p className="text-sm text-gray-600">
-          Current job: <span className="font-medium text-gray-900">{jobs.find(j => j.id === selectedJob)?.name}</span>
-        </p>
+    <div className="flex flex-col bg-white rounded-lg shadow-sm">
+      <p className="text-center font-semibold text-lg p-2">
+        {currentJob?.name || 'Select a job'}
+      </p>
+      <div className="flex items-center justify-center space-x-2 py-2">
+        {jobs.map((job) => (
+          <button
+            key={job.id}
+            onClick={() => setSelectedJob(job.id)}
+            className={`w-3 h-3 rounded-full focus:outline-none transition-colors duration-200 ${
+              selectedJob === job.id 
+                ? 'bg-blue-600' 
+                : 'bg-gray-300 hover:bg-gray-400'
+            }`}
+            title={job.name}
+            aria-label={`Select ${job.name}`}
+          />
+        ))}
       </div>
     </div>
   );
