@@ -9,13 +9,20 @@ import JobSelector from '../components/JobSelector';
 import { api, type Job } from '../app/api/apiClient';
 
 export default function Home() {
-  const [selectedJobId, setSelectedJobId] = useState<number>(1);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Fetch job details whenever selectedJobId changes
   useEffect(() => {
     const fetchJobDetails = async () => {
+      // If null is selected, it represents "Total" (all jobs)
+      if (selectedJobId === null) {
+        setCurrentJob(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const response = await api.jobs.getById(selectedJobId);
@@ -30,16 +37,21 @@ export default function Home() {
     fetchJobDetails();
   }, [selectedJobId]);
 
+  // Get the title based on selection
+  const getTitle = () => {
+    if (loading) return 'Payroll';
+    if (selectedJobId === null) return 'Payroll: All Jobs';
+    return `Payroll: ${currentJob?.name || ''}`;
+  };
+
   return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-6">
-            {loading ? 'Loading...' : `Payroll: ${currentJob?.name || 'Dashboard'}`}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            {getTitle()}
           </h1>
-          <div className="w-64">
-            <JobSelector onJobSelect={(jobId) => setSelectedJobId(jobId)} />
-          </div>
+          <JobSelector onJobSelect={(jobId) => setSelectedJobId(jobId)} />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

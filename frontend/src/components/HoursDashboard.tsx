@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../app/api/apiClient';
 
 interface HoursDashboardProps {
-  selectedJobId: number;
+  selectedJobId: number | null;
 }
 
 type TimePeriod = 'biweekly' | 'monthly';
@@ -27,25 +27,54 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
   const fetchHours = async () => {
     try {
       setLoading(true);
-      const [weeklyRes, extendedRes, totalRes] = await Promise.all([
+
+      // Get weekly and total hours first
+      const [weeklyRes, totalRes] = await Promise.all([
         api.hours.getWeekly(userId),
-        timePeriod === 'biweekly' 
-          ? api.hours.getBiWeeklyByJob(userId, selectedJobId)
-          : api.hours.getMonthlyByJob(userId, selectedJobId),
         api.hours.getTotal(userId)
       ]);
 
-      // Find the selected job in the responses
-      const weeklyJob = weeklyRes.data.jobs.find(job => job.job_id === selectedJobId);
-      const totalJob = totalRes.data.jobs.find(job => job.job_id === selectedJobId);
+      if (selectedJobId === null) {
+        // All jobs - sum up hours from all jobs
+        const weeklyTotal = weeklyRes.data.jobs.reduce((sum, job) => 
+          sum + (job.weekly_hours || 0), 0);
+          
+        // Get all bi-weekly or monthly hours
+        const extendedRes = timePeriod === 'biweekly'
+          ? await api.hours.getBiWeekly(userId)
+          : await api.hours.getMonthly(userId);
+        
+        // Sum up all extended hours
+        const extendedTotal = timePeriod === 'biweekly'
+          ? extendedRes.data.jobs.reduce((sum, job) => sum + (job.biweekly_hours || 0), 0)
+          : extendedRes.data.jobs.reduce((sum, job) => sum + (job.monthly_hours || 0), 0);
+          
+        // Sum up total hours
+        const totalAllHours = totalRes.data.jobs.reduce((sum, job) => 
+          sum + (job.total_hours || 0), 0);
+        
+        setWeeklyHours(weeklyTotal);
+        setExtendedHours(extendedTotal);
+        setTotalHours(totalAllHours);
+      } else {
+        // Single job - get the specific job data
+        const extendedRes = timePeriod === 'biweekly' 
+          ? await api.hours.getBiWeeklyByJob(userId, selectedJobId)
+          : await api.hours.getMonthlyByJob(userId, selectedJobId);
 
-      setWeeklyHours(weeklyJob?.weekly_hours || 0);
-      setExtendedHours(
-        timePeriod === 'biweekly' 
-          ? (extendedRes.data.biweekly_hours || 0)
-          : (extendedRes.data.monthly_hours || 0)
-      );
-      setTotalHours(totalJob?.total_hours || 0);
+        // Find the selected job in the responses
+        const weeklyJob = weeklyRes.data.jobs.find(job => job.job_id === selectedJobId);
+        const totalJob = totalRes.data.jobs.find(job => job.job_id === selectedJobId);
+
+        setWeeklyHours(weeklyJob?.weekly_hours || 0);
+        setExtendedHours(
+          timePeriod === 'biweekly' 
+            ? (extendedRes.data.biweekly_hours || 0)
+            : (extendedRes.data.monthly_hours || 0)
+        );
+        setTotalHours(totalJob?.total_hours || 0);
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching hours:', err);

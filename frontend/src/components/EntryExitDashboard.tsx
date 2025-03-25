@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { api, type EntryExit, type DailyStat } from '../app/api/apiClient';
+import { api, type EntryExit, type DailyStat, type Job } from '../app/api/apiClient';
 
 interface EntryExitDashboardProps {
-  selectedJobId: number;
+  selectedJobId: number | null;
 }
 
 export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboardProps) {
@@ -13,22 +13,86 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
+
+  // Fetch jobs first to use job names later
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const response = await api.jobs.getAll();
+        setJobs(response.data);
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+      }
+    };
+
+    fetchJobs();
+  }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Use job-specific endpoints
-      const [activityRes, statsRes] = await Promise.all([
-        api.entryExit.getLatestByJob(userId, selectedJobId),
-        api.entryExit.getDailyStatsByJob(userId, selectedJobId)
-      ]);
+      if (selectedJobId === null) {
+        // For "All Jobs" view, get all data and combine
+        const jobsResponse = await api.jobs.getAll();
+        const allJobs = jobsResponse.data;
+        
+        // Get data for all jobs
+        const allJobsPromises = allJobs.map(job => 
+          Promise.all([
+            api.entryExit.getLatestByJob(userId, job.id),
+            api.entryExit.getDailyStatsByJob(userId, job.id)
+          ])
+        );
+        
+        const jobsData = await Promise.all(allJobsPromises);
+        
+        // Find the latest activity across all jobs
+        let latestEntryExit: EntryExit | null = null;
+        let latestDate = new Date(0);
+        
+        // Combine daily stats from all jobs
+        let allDailyStats: DailyStat[] = [];
+        
+        jobsData.forEach(([activityRes, statsRes], index) => {
+          const jobActivity = activityRes.data;
+          const jobStats = statsRes.data || [];
+          
+          // Add job stats to combined stats
+          allDailyStats = [...allDailyStats, ...jobStats];
+          
+          // Check if this job has the latest activity
+          if (jobActivity && jobActivity.entry_time) {
+            const entryDate = new Date(jobActivity.entry_time);
+            if (entryDate > latestDate) {
+              latestDate = entryDate;
+              latestEntryExit = jobActivity;
+            }
+          }
+        });
+        
+        // Sort stats by date (newest first)
+        allDailyStats.sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        
+        setLatestActivity(latestEntryExit);
+        setDailyStats(allDailyStats);
+      } else {
+        // Use job-specific endpoints
+        const [activityRes, statsRes] = await Promise.all([
+          api.entryExit.getLatestByJob(userId, selectedJobId),
+          api.entryExit.getDailyStatsByJob(userId, selectedJobId)
+        ]);
 
-      setLatestActivity(activityRes.data || null);
-      setDailyStats(statsRes.data || []);
+        setLatestActivity(activityRes.data || null);
+        setDailyStats(statsRes.data || []);
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching entry/exit data:', err);
@@ -44,6 +108,12 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, [selectedJobId]);
+
+  // Get job name by ID
+  const getJobName = (jobId: number): string => {
+    const job = jobs.find(j => j.id === jobId);
+    return job?.name || 'Unknown Job';
+  };
 
   if (loading) {
     return (
@@ -70,6 +140,11 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         <div className="mb-8">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Latest Activity</h3>
           <div className="bg-blue-50 p-4 rounded-lg">
+            {selectedJobId === null && (
+              <p className="text-sm font-medium text-blue-600">
+                {getJobName(latestActivity.job_id)}
+              </p>
+            )}
             <p className="text-sm text-gray-600">
               Entry: {format(new Date(latestActivity.entry_time), 'MMM d, h:mm a')}
             </p>
@@ -81,7 +156,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           </div>
         </div>
       ) : (
-        <p className="text-gray-500 mb-8">No recent activity for this job</p>
+        <p className="text-gray-500 mb-8">
+          {selectedJobId === null ? 'No recent activity' : 'No recent activity for this job'}
+        </p>
       )}
 
       <div>
@@ -95,6 +172,11 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
                     <p className="text-sm font-medium text-gray-900">
                       {format(new Date(stat.date), 'MMMM d, yyyy')}
                     </p>
+                    {selectedJobId === null && (
+                      <p className="text-sm font-medium text-blue-600">
+                        {getJobName(stat.job_id)}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600">
                       Hours: {stat.avg_hours.toFixed(2)}
                     </p>
@@ -116,7 +198,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No daily statistics available for this job</p>
+          <p className="text-gray-500">
+            {selectedJobId === null ? 'No statistics available' : 'No statistics available for this job'}
+          </p>
         )}
       </div>
     </div>

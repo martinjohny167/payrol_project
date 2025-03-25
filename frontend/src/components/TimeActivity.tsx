@@ -2,20 +2,47 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { api, type TimeEntry } from '../app/api/apiClient';
+import { api, type TimeEntry, type Job } from '../app/api/apiClient';
 
 interface TimeActivityProps {
-  selectedJobId: number;
+  selectedJobId: number | null;
 }
 
 export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentJobForAction, setCurrentJobForAction] = useState<number | null>(null);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
+
+  // Fetch jobs
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const response = await api.jobs.getAll();
+        setJobs(response.data);
+        // Set default job for action when in "All Jobs" view
+        if (response.data.length > 0 && selectedJobId === null) {
+          setCurrentJobForAction(response.data[0].id);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+      }
+    };
+
+    fetchJobs();
+  }, [selectedJobId]);
+
+  // Update current job for action when selection changes
+  useEffect(() => {
+    if (selectedJobId !== null) {
+      setCurrentJobForAction(selectedJobId);
+    }
+  }, [selectedJobId]);
 
   const fetchTimeEntries = async () => {
     try {
@@ -23,10 +50,16 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       const response = await api.timeEntry.getAll();
       const allEntries = response.data;
       
-      // Filter entries by selected job ID and user ID
-      const filteredEntries = allEntries.filter(entry => 
-        entry.job_id === selectedJobId && entry.user_id === userId
-      );
+      // Filter entries by user ID and optionally by job ID
+      const filteredEntries = allEntries.filter(entry => {
+        if (selectedJobId === null) {
+          // In total view, show all user's entries
+          return entry.user_id === userId;
+        } else {
+          // Filter by selected job
+          return entry.job_id === selectedJobId && entry.user_id === userId;
+        }
+      });
       
       // Sort entries by punch_in_time in descending order (newest first)
       const sortedEntries = filteredEntries.sort((a, b) => 
@@ -35,9 +68,17 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       
       setTimeEntries(sortedEntries);
       
-      // Check if there's an active session
-      const latestEntry = sortedEntries[0];
-      setIsActive(latestEntry && !!latestEntry.punch_in_time && !latestEntry.punch_out_time);
+      // Check if there's an active session for the current job
+      if (selectedJobId !== null) {
+        const latestEntry = sortedEntries[0];
+        setIsActive(latestEntry && !!latestEntry.punch_in_time && !latestEntry.punch_out_time);
+      } else {
+        // In total view, check if any job has an active session
+        const hasActiveSession = sortedEntries.some(entry => 
+          !!entry.punch_in_time && !entry.punch_out_time
+        );
+        setIsActive(hasActiveSession);
+      }
       
       setLoading(false);
     } catch (err) {
@@ -65,24 +106,34 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
   };
 
   const handleClockInOut = async () => {
+    // Ensure we have a job to clock in/out for
+    if (currentJobForAction === null) {
+      setError('Please select a job first');
+      return;
+    }
+
     try {
       if (!isActive) {
         // Clock in
         await api.timeEntry.create({
           user_id: userId,
-          job_id: selectedJobId,
+          job_id: currentJobForAction,
           punch_in_time: new Date().toISOString(),
           hours_after_break: 0
         });
       } else {
-        // Clock out - find the active entry and update it
-        const activeEntry = timeEntries.find(entry => !entry.punch_out_time);
+        // Clock out - find the active entry for this job
+        const activeEntry = timeEntries.find(entry => 
+          entry.job_id === (selectedJobId || currentJobForAction) && !entry.punch_out_time
+        );
+        
         if (activeEntry && activeEntry.id) {
           const punchOutTime = new Date().toISOString();
           const hoursAfterBreak = calculateHoursAfterBreak(
             activeEntry.punch_in_time!,
             punchOutTime
           );
+          
           await api.timeEntry.update(activeEntry.id, {
             punch_out_time: punchOutTime,
             hours_after_break: hoursAfterBreak
@@ -95,6 +146,12 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       console.error('Error updating time entry:', err);
       setError('Failed to update time entry');
     }
+  };
+
+  // Get job name by ID
+  const getJobName = (jobId: number): string => {
+    const job = jobs.find(j => j.id === jobId);
+    return job?.name || 'Unknown Job';
   };
 
   if (loading) {
@@ -133,13 +190,20 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
         {timeEntries.length === 0 ? (
-          <p className="text-gray-500">No recent activity for this job</p>
+          <p className="text-gray-500">
+            {selectedJobId === null ? 'No recent activity' : 'No recent activity for this job'}
+          </p>
         ) : (
           timeEntries.map((entry, index) => (
             <div
               key={entry.id || index}
               className="border-l-4 border-blue-500 pl-4 py-2"
             >
+              {selectedJobId === null && (
+                <p className="text-sm font-medium text-blue-600">
+                  {getJobName(entry.job_id)}
+                </p>
+              )}
               <p className="text-sm text-gray-600">
                 {entry.punch_in_time && format(new Date(entry.punch_in_time), 'MMM d, h:mm a')}
                 {entry.punch_out_time && ` - ${format(new Date(entry.punch_out_time), 'h:mm a')}`}

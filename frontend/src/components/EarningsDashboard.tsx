@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../app/api/apiClient';
 
 interface EarningsDashboardProps {
-  selectedJobId: number;
+  selectedJobId: number | null;
 }
 
 type TimePeriod = 'biweekly' | 'monthly';
@@ -28,22 +28,55 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
     try {
       setLoading(true);
       
-      // Use job-specific endpoints
-      const [weeklyRes, extendedRes, totalRes] = await Promise.all([
-        api.earnings.getWeeklyByJob(userId, selectedJobId),
-        timePeriod === 'biweekly'
-          ? api.earnings.getBiWeeklyByJob(userId, selectedJobId)
-          : api.earnings.getMonthlyByJob(userId, selectedJobId),
-        api.earnings.getTotalByJob(userId, selectedJobId)
-      ]);
+      if (selectedJobId === null) {
+        // All jobs - get aggregate earnings data
+        const [weeklyRes, totalRes] = await Promise.all([
+          api.earnings.getWeekly(userId),
+          api.earnings.getTotal(userId)
+        ]);
+        
+        // Calculate total weekly earnings across all jobs
+        const weeklyTotal = weeklyRes.data.jobs.reduce(
+          (sum, job) => sum + (job.weekly_earnings || 0), 0
+        );
+        
+        // Get extended earnings (bi-weekly or monthly)
+        const extendedRes = timePeriod === 'biweekly'
+          ? await api.earnings.getBiWeekly(userId)
+          : await api.earnings.getMonthly(userId);
+          
+        // Calculate total extended earnings
+        const extendedTotal = timePeriod === 'biweekly'
+          ? extendedRes.data.jobs.reduce((sum, job) => sum + (job.biweekly_earnings || 0), 0)
+          : extendedRes.data.jobs.reduce((sum, job) => sum + (job.monthly_earnings || 0), 0);
+          
+        // Calculate total earnings across all jobs
+        const totalAllEarnings = totalRes.data.jobs.reduce(
+          (sum, job) => sum + (job.total_earnings || 0), 0
+        );
+        
+        setWeeklyEarnings(weeklyTotal);
+        setExtendedEarnings(extendedTotal);
+        setTotalEarnings(totalAllEarnings);
+      } else {
+        // Single job - use job-specific endpoints
+        const [weeklyRes, extendedRes, totalRes] = await Promise.all([
+          api.earnings.getWeeklyByJob(userId, selectedJobId),
+          timePeriod === 'biweekly'
+            ? api.earnings.getBiWeeklyByJob(userId, selectedJobId)
+            : api.earnings.getMonthlyByJob(userId, selectedJobId),
+          api.earnings.getTotalByJob(userId, selectedJobId)
+        ]);
 
-      setWeeklyEarnings(weeklyRes.data.weekly_earnings || 0);
-      setExtendedEarnings(
-        timePeriod === 'biweekly'
-          ? (extendedRes.data.biweekly_earnings || 0)
-          : (extendedRes.data.monthly_earnings || 0)
-      );
-      setTotalEarnings(totalRes.data.total_earnings || 0);
+        setWeeklyEarnings(weeklyRes.data.weekly_earnings || 0);
+        setExtendedEarnings(
+          timePeriod === 'biweekly'
+            ? (extendedRes.data.biweekly_earnings || 0)
+            : (extendedRes.data.monthly_earnings || 0)
+        );
+        setTotalEarnings(totalRes.data.total_earnings || 0);
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching earnings:', err);
