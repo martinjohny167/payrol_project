@@ -19,12 +19,19 @@ interface EntryExit {
   entry_time: string;
   exit_time: string;
   entry_date: string;
+  job_id: number;
+  job_name: string;
 }
 
 interface DailyStat {
   date: string;
+  job_id: number;
+  job_name: string;
   entry_count: number;
   avg_hours: number;
+  avg_entry_time: string;
+  avg_exit_time: string;
+  daily_pay: number;
 }
 
 interface Hours {
@@ -101,13 +108,25 @@ export const api = {
       console.log('Calling getLatest with URL:', `${baseURL}/api/entry-exit/latest/${userId}`);
       return apiClient.get<EntryExit>(`/api/entry-exit/latest/${userId}`);
     },
+    getLatestByJob: (userId: number, jobId: number) => {
+      console.log('Calling getLatestByJob with URL:', `${baseURL}/api/entry-exit/latest/${userId}/job/${jobId}`);
+      return apiClient.get<EntryExit>(`/api/entry-exit/latest/${userId}/job/${jobId}`);
+    },
     getRecent: (userId: number) => {
       console.log('Calling getRecent with URL:', `${baseURL}/api/entry-exit/recent/${userId}`);
       return apiClient.get<EntryExit[]>(`/api/entry-exit/recent/${userId}`);
     },
+    getRecentByJob: (userId: number, jobId: number) => {
+      console.log('Calling getRecentByJob with URL:', `${baseURL}/api/entry-exit/recent/${userId}/job/${jobId}`);
+      return apiClient.get<EntryExit[]>(`/api/entry-exit/recent/${userId}/job/${jobId}`);
+    },
     getDailyStats: (userId: number) => {
       console.log('Calling getDailyStats with URL:', `${baseURL}/api/entry-exit/daily/${userId}`);
       return apiClient.get<DailyStat[]>(`/api/entry-exit/daily/${userId}`);
+    },
+    getDailyStatsByJob: (userId: number, jobId: number) => {
+      console.log('Calling getDailyStatsByJob with URL:', `${baseURL}/api/entry-exit/daily/${userId}/job/${jobId}`);
+      return apiClient.get<DailyStat[]>(`/api/entry-exit/daily/${userId}/job/${jobId}`);
     },
   },
 
@@ -121,17 +140,57 @@ export const api = {
       console.log('Calling getWeekly with URL:', `${baseURL}/api/hours/weekly/${userId}`);
       return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; weekly_hours: number }> }>(`/api/hours/weekly/${userId}`);
     },
+    getBiWeekly: (userId: number) => {
+      console.log('Calling getBiWeekly with URL:', `${baseURL}/api/hours/biweekly/${userId}`);
+      return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; biweekly_hours: number }> }>(`/api/hours/biweekly/${userId}`);
+    },
+    getMonthly: (userId: number) => {
+      console.log('Calling getMonthly with URL:', `${baseURL}/api/hours/monthly/${userId}`);
+      return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; monthly_hours: number }> }>(`/api/hours/monthly/${userId}`);
+    },
+    getBiWeeklyByJob: (userId: number, jobId: number) => {
+      console.log('Calling getBiWeeklyByJob with URL:', `${baseURL}/api/hours/biweekly/${userId}/job/${jobId}`);
+      return apiClient.get<{ biweekly_hours: number }>(`/api/hours/biweekly/${userId}/job/${jobId}`);
+    },
+    getMonthlyByJob: (userId: number, jobId: number) => {
+      console.log('Calling getMonthlyByJob with URL:', `${baseURL}/api/hours/monthly/${userId}/job/${jobId}`);
+      return apiClient.get<{ monthly_hours: number }>(`/api/hours/monthly/${userId}/job/${jobId}`);
+    },
   },
 
   // Earnings endpoints
   earnings: {
     getTotal: (userId: number) => {
       console.log('Calling getTotal with URL:', `${baseURL}/api/earnings/total/${userId}`);
-      return apiClient.get<{ total_earned: number }>(`/api/earnings/total/${userId}`);
+      return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; total_earnings: number }> }>(`/api/earnings/total/${userId}`);
     },
     getWeekly: (userId: number) => {
       console.log('Calling getWeekly with URL:', `${baseURL}/api/earnings/weekly/${userId}`);
-      return apiClient.get<{ weekly_earnings: number }>(`/api/earnings/weekly/${userId}`);
+      return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; weekly_earnings: number }> }>(`/api/earnings/weekly/${userId}`);
+    },
+    getBiWeekly: (userId: number) => {
+      console.log('Calling getBiWeekly with URL:', `${baseURL}/api/earnings/biweekly/${userId}`);
+      return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; biweekly_earnings: number }> }>(`/api/earnings/biweekly/${userId}`);
+    },
+    getMonthly: (userId: number) => {
+      console.log('Calling getMonthly with URL:', `${baseURL}/api/earnings/monthly/${userId}`);
+      return apiClient.get<{ jobs: Array<{ job_id: number; job_name: string; monthly_earnings: number }> }>(`/api/earnings/monthly/${userId}`);
+    },
+    getTotalByJob: (userId: number, jobId: number) => {
+      console.log('Calling getTotalByJob with URL:', `${baseURL}/api/earnings/total/${userId}/job/${jobId}`);
+      return apiClient.get<{ total_earnings: number }>(`/api/earnings/total/${userId}/job/${jobId}`);
+    },
+    getWeeklyByJob: (userId: number, jobId: number) => {
+      console.log('Calling getWeeklyByJob with URL:', `${baseURL}/api/earnings/weekly/${userId}/job/${jobId}`);
+      return apiClient.get<{ weekly_earnings: number }>(`/api/earnings/weekly/${userId}/job/${jobId}`);
+    },
+    getBiWeeklyByJob: (userId: number, jobId: number) => {
+      console.log('Calling getBiWeeklyByJob with URL:', `${baseURL}/api/earnings/biweekly/${userId}/job/${jobId}`);
+      return apiClient.get<{ biweekly_earnings: number }>(`/api/earnings/biweekly/${userId}/job/${jobId}`);
+    },
+    getMonthlyByJob: (userId: number, jobId: number) => {
+      console.log('Calling getMonthlyByJob with URL:', `${baseURL}/api/earnings/monthly/${userId}/job/${jobId}`);
+      return apiClient.get<{ monthly_earnings: number }>(`/api/earnings/monthly/${userId}/job/${jobId}`);
     },
   },
 };

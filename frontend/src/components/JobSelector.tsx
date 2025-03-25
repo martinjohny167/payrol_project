@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react';
 import { api, type Job } from '../app/api/apiClient';
 
-export default function JobSelector() {
+interface JobSelectorProps {
+  onJobSelect: (jobId: number) => void;
+}
+
+export default function JobSelector({ onJobSelect }: JobSelectorProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<number>(1);
   const [loading, setLoading] = useState(true);
@@ -24,6 +28,11 @@ export default function JobSelector() {
 
     fetchJobs();
   }, []);
+
+  // Call onJobSelect whenever selectedJob changes
+  useEffect(() => {
+    onJobSelect(selectedJob);
+  }, [selectedJob, onJobSelect]);
 
   if (loading) {
     return (
