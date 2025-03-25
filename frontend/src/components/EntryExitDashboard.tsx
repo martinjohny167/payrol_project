@@ -1,8 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { api, type EntryExit, type DailyStat, type Job } from '../app/api/apiClient';
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  Tooltip, 
+  Legend 
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface EntryExitDashboardProps {
   selectedJobId: number | null;
@@ -114,6 +134,97 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     const job = jobs.find(j => j.id === jobId);
     return job?.name || 'Unknown Job';
   };
+  
+  // Prepare chart data from daily stats
+  const prepareChartData = () => {
+    // Sort stats by date (oldest first for the chart)
+    const sortedStats = [...dailyStats].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Limit to last 7 days worth of data
+    const recentStats = sortedStats.slice(-7);
+    
+    // If we have multiple jobs in total view, prepare data differently
+    if (selectedJobId === null) {
+      // Group by date first
+      const dateGroups: {[key: string]: {[key: number]: number}} = {};
+      
+      recentStats.forEach(stat => {
+        const dateKey = format(new Date(stat.date), 'MM/dd');
+        if (!dateGroups[dateKey]) {
+          dateGroups[dateKey] = {};
+        }
+        dateGroups[dateKey][stat.job_id] = stat.avg_hours;
+      });
+      
+      // Prepare datasets for each job
+      const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
+      const jobDatasets = jobsInStats.map((jobId, index) => {
+        const jobName = getJobName(jobId);
+        // Pick colors for different jobs
+        const colors = [
+          'rgba(54, 162, 235, 0.6)',
+          'rgba(75, 192, 192, 0.6)',
+          'rgba(153, 102, 255, 0.6)',
+          'rgba(255, 159, 64, 0.6)',
+          'rgba(255, 99, 132, 0.6)',
+        ];
+        
+        return {
+          label: jobName,
+          data: Object.keys(dateGroups).map(date => dateGroups[date][jobId] || 0),
+          backgroundColor: colors[index % colors.length],
+        }
+      });
+      
+      return {
+        labels: Object.keys(dateGroups),
+        datasets: jobDatasets,
+      };
+    } else {
+      // Single job view is simpler
+      return {
+        labels: recentStats.map(stat => format(new Date(stat.date), 'MM/dd')),
+        datasets: [
+          {
+            label: 'Hours Worked',
+            data: recentStats.map(stat => stat.avg_hours),
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          },
+        ],
+      };
+    }
+  };
+  
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      title: {
+        display: true,
+        text: 'Hours Worked By Day',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Hours',
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Date',
+        }
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -164,38 +275,8 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Daily Statistics</h3>
         {dailyStats.length > 0 ? (
-          <div className="space-y-4">
-            {dailyStats.map((stat, index) => (
-              <div key={index} className="border-l-4 border-green-500 pl-4 py-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {format(new Date(stat.date), 'MMMM d, yyyy')}
-                    </p>
-                    {selectedJobId === null && (
-                      <p className="text-sm font-medium text-blue-600">
-                        {getJobName(stat.job_id)}
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-600">
-                      Hours: {stat.avg_hours.toFixed(2)}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Average Entry: {format(new Date(stat.avg_entry_time), 'h:mm a')}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Average Exit: {format(new Date(stat.avg_exit_time), 'h:mm a')}
-                    </p>
-                  </div>
-                  <div className="bg-green-100 px-3 py-2 rounded-lg">
-                    <p className="text-sm font-medium text-gray-900">Daily Pay</p>
-                    <p className="text-lg font-bold text-green-700">
-                      ${stat.daily_pay ? stat.daily_pay.toFixed(2) : '0.00'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="h-64">
+            <Bar data={prepareChartData()} options={chartOptions} />
           </div>
         ) : (
           <p className="text-gray-500">
