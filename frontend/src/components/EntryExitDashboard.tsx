@@ -270,7 +270,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       // Get all unique job IDs
       const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
       
-      // Create a dataset for each job
+      // Array of shape types for each job (similar to Google Pixel style)
+      const jobShapes = ['circle', 'triangle', 'rect', 'star', 'cross', 'diamond', 'rectRounded', 'rectRot'];
+
       const datasets = jobsInStats.map((jobId, index) => {
         // Check if this job is the highlighted one
         const isHighlighted = filteredJobId === jobId;
@@ -310,13 +312,13 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           borderWidth: borderWidth,
           borderRadius: 4,
           borderSkipped: false,
-          pointStyle: 'circle',
+          pointStyle: jobShapes[index % jobShapes.length], // Use unique shape for each job
           pointRadius: function(context: any) {
             const index = context.dataIndex;
             const value = context.dataset.data[index];
             // Only show points for highlighted job or if no job is highlighted
             if (filteredJobId === null || isHighlighted) {
-              return value > 0 ? 3 : 0;
+              return value > 0 ? 4 : 0; // Slightly larger points for better visibility
             }
             return 0;
           },
@@ -548,6 +550,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         cornerRadius: 8,
         borderColor: 'rgba(0, 0, 0, 0.1)',
         borderWidth: 1,
+        usePointStyle: true, // Show point style in tooltips
         callbacks: {
           title: (items: any[]) => {
             return items[0].label;
@@ -703,6 +706,86 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     }, 600); // Animation duration
   };
 
+  // Custom job legend
+  const renderJobLegend = () => {
+    // Similar to the chart data preparation
+    const sortedStats = [...dailyStats].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    const recentStats = sortedStats.slice(-getDaysToShow());
+    const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
+    
+    // Array of shape types for each job
+    const jobShapes = ['circle', 'triangle', 'rect', 'star', 'cross', 'diamond', 'rectRounded', 'rectRot'];
+
+    return (
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        {jobsInStats.map((jobId, index) => {
+          const isActive = filteredJobId === jobId;
+          const baseColor = jobColors[index % jobColors.length];
+          const shape = jobShapes[index % jobShapes.length];
+          
+          // Custom shape renderer based on shape type
+          const renderShape = () => {
+            switch(shape) {
+              case 'circle':
+                return <div className="w-3 h-3 rounded-full" style={{ backgroundColor: baseColor }}></div>;
+              case 'triangle':
+                return <div className="w-0 h-0 border-solid border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent" style={{ borderBottomColor: baseColor }}></div>;
+              case 'rect': 
+                return <div className="w-3 h-3" style={{ backgroundColor: baseColor }}></div>;
+              case 'star':
+                return (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill={baseColor}>
+                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                  </svg>
+                );
+              case 'cross':
+                return (
+                  <svg width="10" height="10" viewBox="0 0 24 24" stroke={baseColor} strokeWidth="3" fill="none">
+                    <line x1="4" y1="4" x2="20" y2="20" />
+                    <line x1="4" y1="20" x2="20" y2="4" />
+                  </svg>
+                );
+              case 'diamond':
+                return (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill={baseColor}>
+                    <rect x="12" y="0" width="12" height="12" transform="rotate(45 12 12)" />
+                  </svg>
+                );
+              case 'rectRounded':
+                return <div className="w-3 h-3 rounded-md" style={{ backgroundColor: baseColor }}></div>;
+              case 'rectRot':
+                return (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill={baseColor}>
+                    <rect x="12" y="6" width="12" height="12" transform="rotate(45 12 12)" />
+                  </svg>
+                );
+              default:
+                return <div className="w-3 h-3 rounded-full" style={{ backgroundColor: baseColor }}></div>;
+            }
+          };
+          
+          return (
+            <button
+              key={jobId}
+              onClick={() => handleJobLegendClick(jobId)}
+              className={`flex items-center gap-2 px-2 py-1 rounded transition-all ${
+                isActive ? 'bg-gray-100 font-medium shadow-sm' : 'hover:bg-gray-50'
+              }`}
+            >
+              {renderShape()}
+              <span className={isActive ? 'text-gray-900' : 'text-gray-600'}>
+                {getJobName(jobId)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse bg-white rounded-lg shadow-sm p-6">
@@ -728,39 +811,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         <h2 className="text-xl font-semibold text-gray-900">Hours per Day</h2>
         {selectedJobId === null && dailyStats.length > 0 && (
           <div className="flex flex-wrap justify-end gap-3 items-center">
-            {/* Generate legend manually to place it at heading level */}
-            {Array.from(new Set(dailyStats.map(stat => stat.job_id))).map((jobId, index) => {
-              // Determine if this job is highlighted
-              const isHighlighted = filteredJobId === jobId;
-              const baseColor = jobColors[index % jobColors.length];
-              
-              return (
-                <div 
-                  key={jobId} 
-                  className={`flex items-center cursor-pointer px-2 py-1 rounded-md transition-colors duration-150 ${
-                    isHighlighted 
-                      ? 'bg-gray-100 shadow-sm' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                  onClick={() => handleJobLegendClick(jobId)}
-                >
-                  <span 
-                    className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                      !isHighlighted && filteredJobId !== null ? 'opacity-30' : ''
-                    }`}
-                    style={{ 
-                      backgroundColor: baseColor,
-                      border: isHighlighted ? `1px solid ${baseColor.replace('0.85', '1')}` : 'none'
-                    }}
-                  ></span>
-                  <span className={`text-xs font-medium ${
-                    !isHighlighted && filteredJobId !== null ? 'text-gray-400' : 'text-gray-700'
-                  }`}>
-                    {getJobName(jobId)}
-                  </span>
-                </div>
-              );
-            })}
+            {renderJobLegend()}
           </div>
         )}
       </div>
