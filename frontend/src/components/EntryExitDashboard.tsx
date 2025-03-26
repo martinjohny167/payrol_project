@@ -46,7 +46,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   const [error, setError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedDay, setSelectedDay] = useState<DetailedDayStat | null>(null);
-  const [timeRangeFilter, setTimeRangeFilter] = useState<'weekly' | 'monthly'>('weekly');
+  const [timeRangeFilter] = useState<'weekly' | 'monthly'>('weekly');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Hardcoded user ID for demonstration
@@ -183,6 +183,86 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     }
   };
   
+  // Prepare chart data from daily stats
+  const prepareChartData = () => {
+    // Sort stats by date (oldest first for the chart)
+    const sortedStats = [...dailyStats].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Limit to days specified by the time range filter
+    const recentStats = sortedStats.slice(-getDaysToShow());
+    
+    // Generate a full set of day labels
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    // If we have multiple jobs in total view, prepare data differently
+    if (selectedJobId === null) {
+      // Group by date first
+      const dateGroups: {[key: string]: {[key: number]: number}} = {};
+      
+      // Initialize all days with empty data
+      dayLabels.forEach(day => {
+        dateGroups[day] = {};
+      });
+      
+      // Fill in actual data
+      recentStats.forEach(stat => {
+        const dateKey = format(new Date(stat.date), 'EEE'); // Use short day name like "Mon"
+        if (!dateGroups[dateKey]) {
+          dateGroups[dateKey] = {};
+        }
+        dateGroups[dateKey][stat.job_id] = stat.avg_hours;
+      });
+      
+      // Prepare datasets for each job
+      const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
+      const jobDatasets = jobsInStats.map((jobId, index) => {
+        const jobName = getJobName(jobId);
+        
+        return {
+          label: jobName,
+          data: dayLabels.map(date => dateGroups[date][jobId] || 0),
+          backgroundColor: 'rgba(66, 133, 244, 1)', // The blue color from the example
+          borderRadius: 2,
+          borderSkipped: false,
+        }
+      });
+      
+      return {
+        labels: dayLabels,
+        datasets: jobDatasets,
+      };
+    } else {
+      // Single job view - ensure all days are represented
+      const dayData: {[key: string]: number} = {};
+      
+      // Initialize all days with zero
+      dayLabels.forEach(day => {
+        dayData[day] = 0;
+      });
+      
+      // Fill in actual data
+      recentStats.forEach(stat => {
+        const dateKey = format(new Date(stat.date), 'EEE');
+        dayData[dateKey] = stat.avg_hours;
+      });
+      
+      return {
+        labels: dayLabels,
+        datasets: [
+          {
+            label: 'Hours Worked',
+            data: dayLabels.map(day => dayData[day]),
+            backgroundColor: 'rgba(66, 133, 244, 1)', // Match example blue color
+            borderRadius: 2,
+            borderSkipped: false,
+          },
+        ],
+      };
+    }
+  };
+  
   // Handle chart click
   const handleChartClick = (event: any, elements: any[]) => {
     // Clear any existing timeout first
@@ -198,6 +278,8 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     
     const clickedIndex = elements[0].index;
     const clickedDatasetIndex = elements[0].datasetIndex;
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const clickedDay = dayLabels[clickedIndex];
     
     // Different logic for all jobs vs single job
     if (selectedJobId === null) {
@@ -207,17 +289,12 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       );
       
       const recentStats = sortedStats.slice(-getDaysToShow());
-      const labels = Array.from(new Set(recentStats.map(stat => 
-        format(new Date(stat.date), 'MM/dd')
-      ))).sort();
-      
-      const dateLabel = labels[clickedIndex];
       const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
       const jobId = jobsInStats[clickedDatasetIndex];
       
-      // Find matching stat
+      // Find matching stat for the clicked day and job
       const matchingStat = recentStats.find(stat => 
-        format(new Date(stat.date), 'MM/dd') === dateLabel && 
+        format(new Date(stat.date), 'EEE') === clickedDay && 
         stat.job_id === jobId
       );
       
@@ -232,100 +309,66 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           exitTime: matchingStat.avg_exit_time,
           earnings: matchingStat.daily_pay
         });
-        
-        // Set a timeout to clear the selected day after 5 seconds
-        timerRef.current = setTimeout(() => {
-          setSelectedDay(null);
-          timerRef.current = null;
-        }, 5000);
+      } else {
+        // Handle case where the day exists but has no data
+        setSelectedDay({
+          date: new Date().toISOString(),
+          formattedDate: clickedDay,
+          jobId: jobId,
+          jobName: getJobName(jobId),
+          hours: 0,
+          entryTime: '',
+          exitTime: '',
+          earnings: 0
+        });
       }
+      
+      // Set a timeout to clear the selected day after 5 seconds
+      timerRef.current = setTimeout(() => {
+        setSelectedDay(null);
+        timerRef.current = null;
+      }, 5000);
     } else {
       // Single job view
       const sortedStats = [...dailyStats]
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(-getDaysToShow());
       
-      if (sortedStats[clickedIndex]) {
-        const stat = sortedStats[clickedIndex];
+      // Find the stat for the clicked day
+      const clickedStat = sortedStats.find(stat => 
+        format(new Date(stat.date), 'EEE') === clickedDay
+      );
+      
+      if (clickedStat) {
         setSelectedDay({
-          date: stat.date,
-          formattedDate: format(new Date(stat.date), 'MMMM d, yyyy'),
-          jobId: stat.job_id,
-          jobName: getJobName(stat.job_id),
-          hours: stat.avg_hours,
-          entryTime: stat.avg_entry_time,
-          exitTime: stat.avg_exit_time,
-          earnings: stat.daily_pay
+          date: clickedStat.date,
+          formattedDate: format(new Date(clickedStat.date), 'MMMM d, yyyy'),
+          jobId: clickedStat.job_id,
+          jobName: getJobName(clickedStat.job_id),
+          hours: clickedStat.avg_hours,
+          entryTime: clickedStat.avg_entry_time,
+          exitTime: clickedStat.avg_exit_time,
+          earnings: clickedStat.daily_pay
         });
-        
-        // Set a timeout to clear the selected day after 5 seconds
-        timerRef.current = setTimeout(() => {
-          setSelectedDay(null);
-          timerRef.current = null;
-        }, 5000);
+      } else {
+        // Handle case where the day exists but has no data
+        setSelectedDay({
+          date: new Date().toISOString(),
+          formattedDate: clickedDay,
+          jobId: selectedJobId,
+          jobName: getJobName(selectedJobId),
+          hours: 0,
+          entryTime: '',
+          exitTime: '',
+          earnings: 0
+        });
       }
-    }
-  };
-  
-  // Prepare chart data from daily stats
-  const prepareChartData = () => {
-    // Sort stats by date (oldest first for the chart)
-    const sortedStats = [...dailyStats].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-    
-    // Limit to days specified by the time range filter
-    const recentStats = sortedStats.slice(-getDaysToShow());
-    
-    // If we have multiple jobs in total view, prepare data differently
-    if (selectedJobId === null) {
-      // Group by date first
-      const dateGroups: {[key: string]: {[key: number]: number}} = {};
       
-      recentStats.forEach(stat => {
-        const dateKey = format(new Date(stat.date), 'MM/dd');
-        if (!dateGroups[dateKey]) {
-          dateGroups[dateKey] = {};
-        }
-        dateGroups[dateKey][stat.job_id] = stat.avg_hours;
-      });
-      
-      // Prepare datasets for each job
-      const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
-      const jobDatasets = jobsInStats.map((jobId, index) => {
-        const jobName = getJobName(jobId);
-        // Pick colors for different jobs
-        const colors = [
-          'rgba(54, 162, 235, 0.6)',
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(153, 102, 255, 0.6)',
-          'rgba(255, 159, 64, 0.6)',
-          'rgba(255, 99, 132, 0.6)',
-        ];
-        
-        return {
-          label: jobName,
-          data: Object.keys(dateGroups).map(date => dateGroups[date][jobId] || 0),
-          backgroundColor: colors[index % colors.length],
-        }
-      });
-      
-      return {
-        labels: Object.keys(dateGroups),
-        datasets: jobDatasets,
-      };
-    } else {
-      // Single job view is simpler
-      return {
-        labels: recentStats.map(stat => format(new Date(stat.date), 'MM/dd')),
-        datasets: [
-          {
-            label: 'Hours Worked',
-            data: recentStats.map(stat => stat.avg_hours),
-            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          },
-        ],
-      };
+      // Set a timeout to clear the selected day after 5 seconds
+      timerRef.current = setTimeout(() => {
+        setSelectedDay(null);
+        timerRef.current = null;
+      }, 5000);
     }
   };
   
@@ -333,39 +376,91 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   const chartOptions = {
     responsive: true,
     onClick: handleChartClick,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        display: false,
       },
       title: {
-        display: true,
-        text: 'Hours per Day',
+        display: false,
       },
+      tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        titleColor: '#333',
+        bodyColor: '#333',
+        titleFont: {
+          weight: 'bold',
+          size: 13,
+        },
+        bodyFont: {
+          size: 12,
+        },
+        padding: 10,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+        borderWidth: 1,
+        displayColors: false,
+        callbacks: {
+          title: (items: any[]) => {
+            return items[0].label;
+          },
+          label: (context: any) => {
+            return `${context.raw}h worked`;
+          }
+        }
+      }
     },
     scales: {
       y: {
         beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Hours',
-        },
-        grid: {
-          display: true,
-          color: 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          callback: (value: number) => `${value}h`
-        }
-      },
-      x: {
-        title: {
+        max: 10,
+        border: {
           display: false,
         },
         grid: {
-          display: false
+          display: true,
+          color: 'rgba(0, 0, 0, 0.05)',
+          drawTicks: false,
+          lineWidth: 1,
+          drawBorder: false,
+        },
+        ticks: {
+          padding: 10,
+          stepSize: 2,
+          callback: (value: number) => `${value}h`,
+          color: '#999',
+          font: {
+            size: 12,
+          }
+        }
+      },
+      x: {
+        border: {
+          display: false,
+        },
+        grid: {
+          display: false,
+          drawBorder: false,
+        },
+        ticks: {
+          color: '#999',
+          font: {
+            size: 12,
+          },
+          padding: 5,
         }
       }
-    }
+    },
+    layout: {
+      padding: {
+        left: 10,
+        right: 10,
+        top: 10,
+        bottom: 10
+      }
+    },
+    barThickness: 40,
+    barPercentage: 0.7,
+    categoryPercentage: 0.8,
   };
   
   // Calculate total stats for the selected time range
@@ -443,93 +538,78 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Hours per Day</h2>
-        <div className="relative">
-          <select
-            value={timeRangeFilter}
-            onChange={(e) => setTimeRangeFilter(e.target.value as 'weekly' | 'monthly')}
-            className="block appearance-none bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-            </svg>
-          </div>
-        </div>
       </div>
       
       {dailyStats.length > 0 ? (
         <>
           <div className="mb-6">
-            <div className="h-64">
+            <div className="h-64 bg-white p-2 rounded-lg">
               <Bar data={prepareChartData()} options={chartOptions} />
             </div>
           </div>
           
-          {selectedDay ? (
-            <div className="bg-blue-50 p-4 rounded-lg mb-6">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-medium text-gray-900">
-                  {selectedDay.formattedDate}
-                </h3>
-                <button 
-                  onClick={clearSelectedDay}
-                  className="text-gray-500 hover:text-gray-700"
-                  aria-label="Close"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-              
-              {selectedJobId === null && (
-                <p className="text-sm font-medium text-blue-600 mb-2">
-                  {selectedDay.jobName}
-                </p>
+          <div className="grid grid-cols-3 gap-4">
+            {/* First card - Daily Average or Selected Day Hours */}
+            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
+              {selectedDay ? (
+                <>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                    {selectedJobId === null ? selectedDay.jobName : 'Today\'s Hours'}
+                  </h3>
+                  <p className="text-2xl font-bold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
+                  <p className="text-xs text-blue-500 mt-1">{selectedDay.formattedDate}</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Daily Average</h3>
+                  <p className="text-2xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
+                  <p className="text-xs text-green-500 mt-1">{daysWorked} days worked</p>
+                </>
               )}
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500">Hours Worked</p>
-                  <p className="text-lg font-semibold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Entry Time</p>
-                  <p className="text-lg font-semibold text-gray-900">{formatTime(selectedDay.entryTime)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Exit Time</p>
-                  <p className="text-lg font-semibold text-gray-900">{formatTime(selectedDay.exitTime)}</p>
-                </div>
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-blue-100">
-                <p className="text-xs text-gray-500">Earnings</p>
-                <p className="text-lg font-semibold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
-              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Daily Average</h3>
-                <p className="text-2xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
-                <p className="text-xs text-green-500 mt-1">{daysWorked} days worked</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 mb-1">{timeRangeFilter === 'weekly' ? 'Weekly' : 'Monthly'} Hours</h3>
-                <p className="text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
-                <p className="text-xs text-green-500 mt-1">This {timeRangeFilter === 'weekly' ? 'week' : 'month'}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-500 mb-1">{timeRangeFilter === 'weekly' ? 'Weekly' : 'Monthly'} Earned</h3>
-                <p className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
-                <p className="text-xs text-green-500 mt-1">{totalHours.toFixed(1)}h total</p>
-              </div>
+            
+            {/* Second card - Weekly Hours or Entry/Exit Times */}
+            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
+              {selectedDay ? (
+                <>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Time Activity</h3>
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Entry:</span>
+                      <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.entryTime)}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-gray-500">Exit:</span>
+                      <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.exitTime)}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Hours</h3>
+                  <p className="text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
+                  <p className="text-xs text-green-500 mt-1">This week</p>
+                </>
+              )}
             </div>
-          )}
+            
+            {/* Third card - Weekly Earnings or Day Earnings */}
+            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
+              {selectedDay ? (
+                <>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Day Earnings</h3>
+                  <p className="text-2xl font-bold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
+                  <p className="text-xs text-green-500 mt-1">{selectedDay.hours.toFixed(1)}h worked</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Earnings</h3>
+                  <p className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
+                  <p className="text-xs text-green-500 mt-1">{totalHours.toFixed(1)}h total</p>
+                </>
+              )}
+            </div>
+          </div>
         </>
       ) : (
         <p className="text-gray-500">
