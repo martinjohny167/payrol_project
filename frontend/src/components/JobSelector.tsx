@@ -64,37 +64,47 @@ export default function JobSelector({ onJobSelect }: JobSelectorProps) {
     return null; // Hide error state completely
   }
 
+  // Get the first letter of a job name
+  const getFirstLetter = (name: string): string => {
+    return name.charAt(0).toUpperCase();
+  };
+
   return (
-    <div className="flex items-center justify-center space-x-3">
+    <div className="flex items-center justify-center space-x-3 my-4">
       {/* Total button */}
       <button
         onClick={() => setSelectedJob(null)}
-        className={`w-5 h-5 rounded-full focus:outline-none transition-colors duration-200 ring-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 ${
+        className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs focus:outline-none transition-all duration-200 ${
           selectedJob === null 
-            ? 'ring-gray-400' 
-            : 'opacity-50 ring-transparent'
+            ? 'bg-gradient-to-r from-purple-500 to-blue-500 ring-2 ring-gray-200 shadow-md' 
+            : 'bg-gradient-to-r from-purple-500/60 to-blue-500/60 hover:from-purple-500 hover:to-blue-500'
         }`}
         title="Total (All Jobs)"
         aria-label="Show total for all jobs"
-      />
+      >
+        ALL
+      </button>
 
       {/* Individual job buttons */}
       {jobs.map((job, index) => {
         // Get color from array, or use a default if we run out of colors
         const colorClass = DOT_COLORS[index % DOT_COLORS.length];
+        const baseColor = colorClass.split(' ')[0]; // Get just the base color class
         
         return (
           <button
             key={job.id}
             onClick={() => setSelectedJob(job.id)}
-            className={`w-4 h-4 rounded-full focus:outline-none transition-colors duration-200 ring-2 ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs focus:outline-none transition-all duration-200 ${
               selectedJob === job.id 
-                ? `${colorClass} ring-gray-400` 
-                : `${colorClass} opacity-50 ring-transparent`
+                ? `${baseColor} ring-2 ring-gray-200 shadow-md` 
+                : `${baseColor}/60 hover:${baseColor}`
             }`}
             title={job.name}
             aria-label={`Select ${job.name}`}
-          />
+          >
+            {getFirstLetter(job.name)}
+          </button>
         );
       })}
     </div>

@@ -724,60 +724,25 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         {jobsInStats.map((jobId, index) => {
           const isActive = filteredJobId === jobId;
           const baseColor = jobColors[index % jobColors.length];
-          const shape = jobShapes[index % jobShapes.length];
-          
-          // Custom shape renderer based on shape type
-          const renderShape = () => {
-            switch(shape) {
-              case 'circle':
-                return <div className="w-3 h-3 rounded-full" style={{ backgroundColor: baseColor }}></div>;
-              case 'triangle':
-                return <div className="w-0 h-0 border-solid border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent" style={{ borderBottomColor: baseColor }}></div>;
-              case 'rect': 
-                return <div className="w-3 h-3" style={{ backgroundColor: baseColor }}></div>;
-              case 'star':
-                return (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill={baseColor}>
-                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                  </svg>
-                );
-              case 'cross':
-                return (
-                  <svg width="10" height="10" viewBox="0 0 24 24" stroke={baseColor} strokeWidth="3" fill="none">
-                    <line x1="4" y1="4" x2="20" y2="20" />
-                    <line x1="4" y1="20" x2="20" y2="4" />
-                  </svg>
-                );
-              case 'diamond':
-                return (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill={baseColor}>
-                    <rect x="12" y="0" width="12" height="12" transform="rotate(45 12 12)" />
-                  </svg>
-                );
-              case 'rectRounded':
-                return <div className="w-3 h-3 rounded-md" style={{ backgroundColor: baseColor }}></div>;
-              case 'rectRot':
-                return (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill={baseColor}>
-                    <rect x="12" y="6" width="12" height="12" transform="rotate(45 12 12)" />
-                  </svg>
-                );
-              default:
-                return <div className="w-3 h-3 rounded-full" style={{ backgroundColor: baseColor }}></div>;
-            }
-          };
+          const jobName = getJobName(jobId);
+          const firstLetter = jobName.charAt(0).toUpperCase();
           
           return (
             <button
               key={jobId}
               onClick={() => handleJobLegendClick(jobId)}
-              className={`flex items-center gap-2 px-2 py-1 rounded transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
                 isActive ? 'bg-gray-100 font-medium shadow-sm' : 'hover:bg-gray-50'
               }`}
             >
-              {renderShape()}
+              <span 
+                className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-medium`}
+                style={{ backgroundColor: isActive ? baseColor : baseColor.replace('0.85', '0.6') }}
+              >
+                {firstLetter}
+              </span>
               <span className={isActive ? 'text-gray-900' : 'text-gray-600'}>
-                {getJobName(jobId)}
+                {jobName}
               </span>
             </button>
           );
