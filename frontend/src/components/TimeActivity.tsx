@@ -15,6 +15,7 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJobForAction, setCurrentJobForAction] = useState<number | null>(null);
+  const [latestAction, setLatestAction] = useState<string | null>(null);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
@@ -68,16 +69,30 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       
       setTimeEntries(sortedEntries);
       
-      // Check if there's an active session for the current job
-      if (selectedJobId !== null) {
+      // Set the latest action text for the status display
+      if (selectedJobId !== null && sortedEntries.length > 0) {
         const latestEntry = sortedEntries[0];
-        setIsActive(latestEntry && !!latestEntry.punch_in_time && !latestEntry.punch_out_time);
+        if (!!latestEntry.punch_in_time && !latestEntry.punch_out_time) {
+          // Currently clocked in
+          const punchInTime = format(new Date(latestEntry.punch_in_time), 'h:mm a');
+          setLatestAction(`Punched in at ${punchInTime}`);
+          setIsActive(true);
+        } else if (latestEntry.punch_out_time) {
+          // Most recently clocked out
+          const punchOutTime = format(new Date(latestEntry.punch_out_time), 'h:mm a');
+          setLatestAction(`Punched out at ${punchOutTime}`);
+          setIsActive(false);
+        } else {
+          setLatestAction(null);
+          setIsActive(false);
+        }
       } else {
         // In total view, check if any job has an active session
         const hasActiveSession = sortedEntries.some(entry => 
           !!entry.punch_in_time && !entry.punch_out_time
         );
         setIsActive(hasActiveSession);
+        setLatestAction(null); // Don't show latest action in total view
       }
       
       setLoading(false);
@@ -175,16 +190,21 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-        <button
-          onClick={handleClockInOut}
-          className={`px-4 py-2 rounded-md font-medium ${
-            isActive
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-        >
-          {isActive ? 'Clock Out' : 'Clock In'}
-        </button>
+        <div className="flex items-center gap-3">
+          {selectedJobId !== null && latestAction && (
+            <p className="text-sm text-gray-600">{latestAction}</p>
+          )}
+          <button
+            onClick={handleClockInOut}
+            className={`px-4 py-2 rounded-md font-medium ${
+              isActive
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            {isActive ? 'Clock Out' : 'Clock In'}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
