@@ -217,14 +217,27 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       
       // Prepare datasets for each job
       const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
+      
+      // Define job colors - use vibrant colors that work well together
+      const jobColors = [
+        'rgba(66, 133, 244, 0.8)',   // Blue
+        'rgba(219, 68, 55, 0.8)',    // Red
+        'rgba(15, 157, 88, 0.8)',    // Green
+        'rgba(244, 180, 0, 0.8)',    // Yellow
+        'rgba(171, 71, 188, 0.8)',   // Purple
+        'rgba(255, 112, 67, 0.8)',   // Orange
+        'rgba(3, 169, 244, 0.8)'     // Light Blue
+      ];
+      
       const jobDatasets = jobsInStats.map((jobId, index) => {
         const jobName = getJobName(jobId);
         
         return {
           label: jobName,
           data: dayLabels.map(date => dateGroups[date][jobId] || 0),
-          backgroundColor: 'rgba(66, 133, 244, 1)', // The blue color from the example
+          backgroundColor: jobColors[index % jobColors.length],
           borderRadius: 2,
+          borderWidth: 0,
           borderSkipped: false,
         }
       });
@@ -379,10 +392,19 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        display: selectedJobId === null, // Only show legend when viewing all jobs
+        position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          boxWidth: 10,
+          padding: 15,
+          font: {
+            size: 11
+          }
+        }
       },
       title: {
-        display: false,
+        display: false, // No title in the example
       },
       tooltip: {
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -398,13 +420,13 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         padding: 10,
         borderColor: 'rgba(0, 0, 0, 0.1)',
         borderWidth: 1,
-        displayColors: false,
+        displayColors: true,
         callbacks: {
           title: (items: any[]) => {
             return items[0].label;
           },
           label: (context: any) => {
-            return `${context.raw}h worked`;
+            return `${context.dataset.label}: ${context.raw}h`;
           }
         }
       }
@@ -412,9 +434,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     scales: {
       y: {
         beginAtZero: true,
-        max: 10,
+        max: 10, // Based on the example showing up to 8h with some padding
         border: {
-          display: false,
+          display: false, // No axis line in the example
         },
         grid: {
           display: true,
@@ -425,20 +447,21 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         },
         ticks: {
           padding: 10,
-          stepSize: 2,
+          stepSize: 2, // 2h intervals as shown in the example
           callback: (value: number) => `${value}h`,
           color: '#999',
           font: {
             size: 12,
           }
-        }
+        },
+        stacked: selectedJobId === null // Use stacked bars only for all jobs view
       },
       x: {
         border: {
-          display: false,
+          display: false, // No axis line in the example
         },
         grid: {
-          display: false,
+          display: false, // No grid lines for x axis
           drawBorder: false,
         },
         ticks: {
@@ -447,7 +470,8 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
             size: 12,
           },
           padding: 5,
-        }
+        },
+        stacked: selectedJobId === null // Use stacked bars only for all jobs view
       }
     },
     layout: {
@@ -458,9 +482,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         bottom: 10
       }
     },
-    barThickness: 40,
-    barPercentage: 0.7,
-    categoryPercentage: 0.8,
+    barThickness: 40, // Makes bars wider like in the example
+    barPercentage: 0.7, // Controls bar width
+    categoryPercentage: 0.8, // Controls spacing between bars
   };
   
   // Calculate total stats for the selected time range
