@@ -50,6 +50,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
   const prevJobIdRef = useRef<number | null>(null);
+  const [filteredJobId, setFilteredJobId] = useState<number | null>(null);
+  const [isCardFlipping, setIsCardFlipping] = useState(false);
+  const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
@@ -79,6 +82,26 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     
     prevJobIdRef.current = selectedJobId;
   }, [selectedJobId]);
+
+  // Auto-reset filtered job after 10 seconds
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    
+    if (filteredJobId !== null) {
+      timer = setTimeout(() => {
+        setIsFlipping(true);
+        setFilteredJobId(null);
+        
+        setTimeout(() => {
+          setIsFlipping(false);
+        }, 600);
+      }, 10000);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [filteredJobId]);
 
   // Fetch jobs first to use job names later
   useEffect(() => {
@@ -205,6 +228,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   // Clear the selected day and any existing timer
   const clearSelectedDay = () => {
     setSelectedDay(null);
+    setActiveCardIndex(null);
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -248,21 +272,59 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       
       // Create a dataset for each job
       const datasets = jobsInStats.map((jobId, index) => {
+        // Check if this job is the highlighted one
+        const isHighlighted = filteredJobId === jobId;
+        const baseColor = jobColors[index % jobColors.length];
+        
+        // For non-highlighted jobs when a job is selected, use faded colors
+        let backgroundColor = baseColor;
+        let pointBackgroundColor = baseColor;
+        let borderWidth = 0;
+        
+        // If a job is filtered, only show that job's bars
+        if (filteredJobId !== null) {
+          if (!isHighlighted) {
+            // Hide non-highlighted jobs completely when filtering
+            return {
+              label: getJobName(jobId),
+              data: dayLabels.map(day => 0), // Zero data to hide bars
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
+              borderWidth: 0,
+              borderRadius: 4,
+              borderSkipped: false,
+              pointRadius: 0, // Hide points
+              order: index
+            };
+          } else {
+            // The highlighted job gets full opacity and a border
+            borderWidth = 1;
+          }
+        }
+        
         return {
           label: getJobName(jobId),
           data: dayLabels.map(day => dateJobGroups[day][jobId] || 0),
-          backgroundColor: jobColors[index % jobColors.length],
+          backgroundColor: backgroundColor,
+          borderColor: isHighlighted ? baseColor.replace('0.85', '1') : 'transparent',
+          borderWidth: borderWidth,
           borderRadius: 4,
           borderSkipped: false,
           pointStyle: 'circle',
           pointRadius: function(context: any) {
             const index = context.dataIndex;
             const value = context.dataset.data[index];
-            return value > 0 ? 3 : 0;
+            // Only show points for highlighted job or if no job is highlighted
+            if (filteredJobId === null || isHighlighted) {
+              return value > 0 ? 3 : 0;
+            }
+            return 0;
           },
-          pointBackgroundColor: jobColors[index % jobColors.length],
+          pointBackgroundColor: pointBackgroundColor,
           pointBorderColor: 'white',
           pointBorderWidth: 1.5,
+          // Move highlighted job to front
+          order: isHighlighted ? -1 : index
         };
       });
       
@@ -319,24 +381,46 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     
     if (elements.length === 0) {
       clearSelectedDay();
+      setActiveCardIndex(null);
       return;
     }
+    
+    // Trigger card flip animation when selecting a day
+    setIsCardFlipping(true);
+    
+    // Randomly highlight one of the three cards for more interesting effect
+    setActiveCardIndex(Math.floor(Math.random() * 3));
     
     const clickedIndex = elements[0].index;
     const clickedDatasetIndex = elements[0].datasetIndex;
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const clickedDay = dayLabels[clickedIndex];
     
-    // Different logic for all jobs vs single job
+    // Prepare the day data
+    let dayData: DetailedDayStat | null = null;
+    
+    // Different logic for all jobs vs single job vs filtered job
     if (selectedJobId === null) {
       // All jobs view - get the job from the dataset
       const sortedStats = [...dailyStats].sort((a, b) => 
         new Date(a.date).getTime() - new Date(b.date).getTime()
       );
       
-      const recentStats = sortedStats.slice(-getDaysToShow());
-      const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
-      const jobId = jobsInStats[clickedDatasetIndex];
+      // Apply filtering if needed
+      const statsToUse = filteredJobId !== null
+        ? sortedStats.filter(stat => stat.job_id === filteredJobId)
+        : sortedStats;
+      
+      const recentStats = statsToUse.slice(-getDaysToShow());
+      
+      // Get job ID based on filter state
+      let jobId: number;
+      if (filteredJobId !== null) {
+        jobId = filteredJobId;
+      } else {
+        const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
+        jobId = jobsInStats[clickedDatasetIndex];
+      }
       
       // Find matching stat for the clicked day and job
       const matchingStat = recentStats.find(stat => 
@@ -345,7 +429,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       );
       
       if (matchingStat) {
-        setSelectedDay({
+        dayData = {
           date: matchingStat.date,
           formattedDate: format(new Date(matchingStat.date), 'MMMM d, yyyy'),
           jobId: matchingStat.job_id,
@@ -354,10 +438,10 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           entryTime: matchingStat.avg_entry_time,
           exitTime: matchingStat.avg_exit_time,
           earnings: matchingStat.daily_pay
-        });
+        };
       } else {
         // Handle case where the day exists but has no data
-        setSelectedDay({
+        dayData = {
           date: new Date().toISOString(),
           formattedDate: clickedDay,
           jobId: jobId,
@@ -366,14 +450,8 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           entryTime: '',
           exitTime: '',
           earnings: 0
-        });
+        };
       }
-      
-      // Set a timeout to clear the selected day after 5 seconds
-      timerRef.current = setTimeout(() => {
-        setSelectedDay(null);
-        timerRef.current = null;
-      }, 5000);
     } else {
       // Single job view
       const sortedStats = [...dailyStats]
@@ -386,7 +464,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       );
       
       if (clickedStat) {
-        setSelectedDay({
+        dayData = {
           date: clickedStat.date,
           formattedDate: format(new Date(clickedStat.date), 'MMMM d, yyyy'),
           jobId: clickedStat.job_id,
@@ -395,10 +473,10 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           entryTime: clickedStat.avg_entry_time,
           exitTime: clickedStat.avg_exit_time,
           earnings: clickedStat.daily_pay
-        });
+        };
       } else {
         // Handle case where the day exists but has no data
-        setSelectedDay({
+        dayData = {
           date: new Date().toISOString(),
           formattedDate: clickedDay,
           jobId: selectedJobId,
@@ -407,15 +485,26 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           entryTime: '',
           exitTime: '',
           earnings: 0
-        });
+        };
       }
+    }
+    
+    // Set the content after a short delay, so animation can show first
+    setTimeout(() => {
+      setSelectedDay(dayData);
       
-      // Set a timeout to clear the selected day after 5 seconds
+      // Reset animation after content is set
+      setTimeout(() => {
+        setIsCardFlipping(false);
+      }, 300);
+      
+      // Set a timeout to clear the selected day after 10 seconds
       timerRef.current = setTimeout(() => {
         setSelectedDay(null);
+        setActiveCardIndex(null);
         timerRef.current = null;
-      }, 5000);
-    }
+      }, 10000);
+    }, 400); // Delay setting the content to show animation first
   };
   
   // Chart options
@@ -473,7 +562,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     scales: {
       y: {
         beginAtZero: true,
-        max: 10, // Based on the example showing up to 8h with some padding
+        max: selectedJobId === null && filteredJobId === null ? 14 : 10, // Add 4h extra padding only in total view
         border: {
           display: false, // No axis line in the example
         },
@@ -542,12 +631,17 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     
-    const recentStats = sortedStats.slice(-getDaysToShow());
+    // Apply job filtering if needed
+    const filteredSortedStats = selectedJobId === null && filteredJobId !== null
+      ? sortedStats.filter(stat => stat.job_id === filteredJobId)
+      : sortedStats;
     
-    if (recentStats.length === 0) return { totalHours: 0, totalEarnings: 0, daysWorked: 0 };
+    const recentStats = filteredSortedStats.slice(-getDaysToShow());
+    
+    if (recentStats.length === 0) return { totalHours: 0, totalEarnings: 0, daysWorked: 0, avgHoursPerDay: 0 };
     
     // If total view, we need to be careful not to double count days
-    if (selectedJobId === null) {
+    if (selectedJobId === null && filteredJobId === null) {
       // Group by date to avoid double counting
       const dateGroups: {[key: string]: {hours: number, earnings: number}} = {};
       
@@ -573,7 +667,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         avgHoursPerDay
       };
     } else {
-      // Single job is simpler
+      // Single job or filtered job is simpler
       const daysWorked = recentStats.length;
       const totalHours = recentStats.reduce((sum, stat) => sum + stat.avg_hours, 0);
       const totalEarnings = recentStats.reduce((sum, stat) => sum + stat.daily_pay, 0);
@@ -590,6 +684,24 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
 
   // CSS class for flip animation
   const flipClass = isFlipping ? 'animate-flip' : '';
+
+  // Job legend click handler
+  const handleJobLegendClick = (jobId: number) => {
+    if (filteredJobId === jobId) {
+      // If already filtered by this job, show all jobs (default view)
+      setFilteredJobId(null);
+    } else {
+      // Filter to show only this job
+      setFilteredJobId(jobId);
+    }
+    
+    // Trigger flip animation
+    setIsFlipping(true);
+    
+    setTimeout(() => {
+      setIsFlipping(false);
+    }, 600); // Animation duration
+  };
 
   if (loading) {
     return (
@@ -615,16 +727,37 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Hours per Day</h2>
         {selectedJobId === null && dailyStats.length > 0 && (
-          <div className="flex flex-wrap justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3 items-center">
             {/* Generate legend manually to place it at heading level */}
             {Array.from(new Set(dailyStats.map(stat => stat.job_id))).map((jobId, index) => {
+              // Determine if this job is highlighted
+              const isHighlighted = filteredJobId === jobId;
+              const baseColor = jobColors[index % jobColors.length];
+              
               return (
-                <div key={jobId} className="flex items-center">
+                <div 
+                  key={jobId} 
+                  className={`flex items-center cursor-pointer px-2 py-1 rounded-md transition-colors duration-150 ${
+                    isHighlighted 
+                      ? 'bg-gray-100 shadow-sm' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => handleJobLegendClick(jobId)}
+                >
                   <span 
-                    className="inline-block w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: jobColors[index % jobColors.length] }}
+                    className={`inline-block w-3 h-3 rounded-full mr-2 ${
+                      !isHighlighted && filteredJobId !== null ? 'opacity-30' : ''
+                    }`}
+                    style={{ 
+                      backgroundColor: baseColor,
+                      border: isHighlighted ? `1px solid ${baseColor.replace('0.85', '1')}` : 'none'
+                    }}
                   ></span>
-                  <span className="text-xs font-medium">{getJobName(jobId)}</span>
+                  <span className={`text-xs font-medium ${
+                    !isHighlighted && filteredJobId !== null ? 'text-gray-400' : 'text-gray-700'
+                  }`}>
+                    {getJobName(jobId)}
+                  </span>
                 </div>
               );
             })}
@@ -649,66 +782,72 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
             </div>
           </div>
           
-          <div className={`grid grid-cols-3 gap-4 transform perspective-1000 ${flipClass}`}>
+          <div className={`grid grid-cols-3 gap-4 transform perspective-1000 ${flipClass} ${isCardFlipping ? 'animate-card-flip' : ''}`}>
             {/* First card - Daily Average or Selected Day Hours */}
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
-              {selectedDay ? (
-                <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
-                    {selectedJobId === null ? selectedDay.jobName : 'Today\'s Hours'}
-                  </h3>
-                  <p className="text-2xl font-bold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
-                  <p className="text-xs text-blue-500 mt-1">{selectedDay.formattedDate}</p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Daily Average</h3>
-                  <p className="text-2xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
-                  <p className="text-xs text-green-500 mt-1">{daysWorked} days worked</p>
-                </>
-              )}
+            <div className={`bg-gray-50 p-4 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 0 ? 'shadow-md bg-white' : ''}`}>
+              <div className={`${isCardFlipping ? 'animate-text-blur' : ''}`} style={{ animationDelay: '0ms' }}>
+                {selectedDay ? (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">
+                      {selectedJobId === null ? selectedDay.jobName : 'Today\'s Hours'}
+                    </h3>
+                    <p className="text-2xl font-bold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
+                    <p className="text-xs text-blue-500 mt-1">{selectedDay.formattedDate}</p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Daily Average</h3>
+                    <p className="text-2xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
+                    <p className="text-xs text-green-500 mt-1">{daysWorked} days worked</p>
+                  </>
+                )}
+              </div>
             </div>
             
             {/* Second card - Weekly Hours or Entry/Exit Times */}
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
-              {selectedDay ? (
-                <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Activity</h3>
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Entry:</span>
-                      <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.entryTime)}</span>
+            <div className={`bg-gray-50 p-4 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 1 ? 'shadow-md bg-white' : ''}`}>
+              <div className={`${isCardFlipping ? 'animate-text-blur' : ''}`} style={{ animationDelay: '100ms' }}>
+                {selectedDay ? (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Activity</h3>
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Entry:</span>
+                        <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.entryTime)}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-gray-500">Exit:</span>
+                        <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.exitTime)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-gray-500">Exit:</span>
-                      <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.exitTime)}</span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Hours</h3>
-                  <p className="text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
-                  <p className="text-xs text-green-500 mt-1">This week</p>
-                </>
-              )}
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Hours</h3>
+                    <p className="text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
+                    <p className="text-xs text-green-500 mt-1">This week</p>
+                  </>
+                )}
+              </div>
             </div>
             
             {/* Third card - Weekly Earnings or Day Earnings */}
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
-              {selectedDay ? (
-                <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Day Earnings</h3>
-                  <p className="text-2xl font-bold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
-                  <p className="text-xs text-green-500 mt-1">{selectedDay.hours.toFixed(1)}h worked</p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Earnings</h3>
-                  <p className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
-                  <p className="text-xs text-green-500 mt-1">{totalHours.toFixed(1)}h total</p>
-                </>
-              )}
+            <div className={`bg-gray-50 p-4 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 2 ? 'shadow-md bg-white' : ''}`}>
+              <div className={`${isCardFlipping ? 'animate-text-blur' : ''}`} style={{ animationDelay: '200ms' }}>
+                {selectedDay ? (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Day Earnings</h3>
+                    <p className="text-2xl font-bold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
+                    <p className="text-xs text-green-500 mt-1">{selectedDay.hours.toFixed(1)}h worked</p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Earnings</h3>
+                    <p className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
+                    <p className="text-xs text-green-500 mt-1">{totalHours.toFixed(1)}h total</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </>
