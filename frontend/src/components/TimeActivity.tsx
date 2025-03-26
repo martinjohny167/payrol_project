@@ -15,7 +15,7 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJobForAction, setCurrentJobForAction] = useState<number | null>(null);
-  const [latestEntry, setLatestEntry] = useState<TimeEntry | null>(null);
+  const [lastPunchTime, setLastPunchTime] = useState<string | null>(null);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
@@ -69,23 +69,32 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       
       setTimeEntries(sortedEntries);
       
-      // Store the latest entry for reference
-      if (sortedEntries.length > 0) {
-        setLatestEntry(sortedEntries[0]);
-      } else {
-        setLatestEntry(null);
-      }
-      
       // Check if there's an active session for the current job
       if (selectedJobId !== null) {
-        const latestJobEntry = sortedEntries[0];
-        setIsActive(latestJobEntry && !!latestJobEntry.punch_in_time && !latestJobEntry.punch_out_time);
+        const latestEntry = sortedEntries[0];
+        setIsActive(latestEntry && !!latestEntry.punch_in_time && !latestEntry.punch_out_time);
+        
+        // Set last punch time
+        if (latestEntry) {
+          if (latestEntry.punch_out_time) {
+            setLastPunchTime(latestEntry.punch_out_time);
+          } else if (latestEntry.punch_in_time) {
+            setLastPunchTime(latestEntry.punch_in_time);
+          } else {
+            setLastPunchTime(null);
+          }
+        } else {
+          setLastPunchTime(null);
+        }
       } else {
         // In total view, check if any job has an active session
         const hasActiveSession = sortedEntries.some(entry => 
           !!entry.punch_in_time && !entry.punch_out_time
         );
         setIsActive(hasActiveSession);
+        
+        // Don't set last punch time for total view
+        setLastPunchTime(null);
       }
       
       setLoading(false);
@@ -162,19 +171,19 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
     return job?.name || 'Unknown Job';
   };
 
-  // Get the most recent activity status text
-  const getLatestActivityStatus = () => {
-    if (!latestEntry) return "No recent activity";
-    
-    const jobName = getJobName(latestEntry.job_id);
-    
-    if (latestEntry.punch_in_time && !latestEntry.punch_out_time) {
-      return `Clocked in at ${format(new Date(latestEntry.punch_in_time), 'h:mm a')} for ${jobName}`;
-    } else if (latestEntry.punch_out_time) {
-      return `Clocked out at ${format(new Date(latestEntry.punch_out_time), 'h:mm a')} from ${jobName}`;
+  // Format the button text based on the current state
+  const getButtonText = () => {
+    if (selectedJobId === null) {
+      return isActive ? 'Clock Out' : 'Clock In';
     }
     
-    return "Status unknown";
+    if (isActive) {
+      return 'Punched In ' + (lastPunchTime ? format(new Date(lastPunchTime), 'h:mm a') : '');
+    } else {
+      return lastPunchTime 
+        ? 'Punched Out ' + format(new Date(lastPunchTime), 'h:mm a') 
+        : 'Clock In';
+    }
   };
 
   if (loading) {
@@ -198,21 +207,13 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-        {selectedJobId === null ? (
-          <div className="text-sm text-gray-600 italic">
-            {getLatestActivityStatus()}
+        {selectedJobId !== null && (
+          <div className="text-sm font-medium">
+            {isActive 
+              ? <span className="text-red-600">Punched In {lastPunchTime ? format(new Date(lastPunchTime), 'EEE, h:mm a') : ''}</span>
+              : <span className="text-green-600">Punched Out {lastPunchTime ? format(new Date(lastPunchTime), 'EEE, h:mm a') : ''}</span>
+            }
           </div>
-        ) : (
-          <button
-            onClick={handleClockInOut}
-            className={`px-4 py-2 rounded-md font-medium ${
-              isActive
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-          >
-            {isActive ? 'Clock Out' : 'Clock In'}
-          </button>
         )}
       </div>
 

@@ -24,3 +24,27 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes flip {
+  0% {
+    transform: perspective(1000px) rotateY(0);
+    opacity: 1;
+  }
+  25% {
+    transform: perspective(1000px) rotateY(-15deg);
+    opacity: 0.7;
+  }
+  75% {
+    transform: perspective(1000px) rotateY(15deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: perspective(1000px) rotateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-flip {
+  animation: flip 0.6s ease-in-out;
+  backface-visibility: hidden;
+}
