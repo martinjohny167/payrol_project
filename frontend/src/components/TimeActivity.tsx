@@ -174,7 +174,7 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Time Activity</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
         <button
           onClick={handleClockInOut}
           className={`px-4 py-2 rounded-md font-medium ${

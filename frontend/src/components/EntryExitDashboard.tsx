@@ -572,7 +572,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
             <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
               {selectedDay ? (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Time Activity</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Activity</h3>
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-500">Entry:</span>
