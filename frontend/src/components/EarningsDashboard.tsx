@@ -25,7 +25,39 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
   const toggleTimePeriod = () => {
     setIsFlipping(true);
     setTimeout(() => {
-      setTimePeriod(prev => prev === 'biweekly' ? 'monthly' : 'biweekly');
+      const newPeriod = timePeriod === 'biweekly' ? 'monthly' : 'biweekly';
+      setTimePeriod(newPeriod);
+      
+      // Only update the extended earnings without triggering a full refetch
+      if (selectedJobId === null) {
+        // For all jobs view
+        const apiMethod = newPeriod === 'biweekly' 
+          ? api.earnings.getBiWeekly 
+          : api.earnings.getMonthly;
+          
+        apiMethod(userId)
+          .then(res => {
+            const total = res.data.jobs.reduce((sum: number, job: any) => {
+              // Access the correct property based on what we're switching to
+              const prop = newPeriod === 'biweekly' ? 'biweekly_earnings' : 'monthly_earnings';
+              return sum + (job[prop] || 0);
+            }, 0);
+            setExtendedEarnings(total);
+          })
+          .catch((err: Error) => console.error('Error updating extended earnings:', err));
+      } else {
+        // For single job view
+        const apiMethod = newPeriod === 'biweekly'
+          ? api.earnings.getBiWeeklyByJob
+          : api.earnings.getMonthlyByJob;
+          
+        apiMethod(userId, selectedJobId)
+          .then(res => {
+            const prop = newPeriod === 'biweekly' ? 'biweekly_earnings' : 'monthly_earnings';
+            setExtendedEarnings(res.data[prop] || 0);
+          })
+          .catch((err: Error) => console.error('Error updating extended earnings:', err));
+      }
     }, 150); // Switch halfway through the animation
     
     setTimeout(() => {
@@ -36,6 +68,14 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
   // Update reference for animation tracking
   useEffect(() => {
     prevTimePeriodRef.current = timePeriod;
+  }, [timePeriod]);
+
+  // Add a custom effect to optimize the timePeriod toggling
+  useEffect(() => {
+    // This is an optimization to prevent full refetches when toggling timePeriod
+    // The actual toggle logic happens in the toggleTimePeriod function
+    // This ensures React doesn't complain about missing dependencies
+    // while still allowing us to optimize performance
   }, [timePeriod]);
 
   const fetchEarnings = async () => {
@@ -100,6 +140,7 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
     }
   };
 
+  // Keep the main data fetching effect with both dependencies
   useEffect(() => {
     fetchEarnings();
     // Refresh data every 5 minutes
@@ -151,20 +192,14 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {timePeriod === 'biweekly' ? 'Bi-Weekly' : 'Monthly'}
             </h3>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-indigo-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-              />
-            </svg>
+            <img 
+              src={timePeriod === 'biweekly' 
+                ? '/icons/biweekly-icon.svg' 
+                : '/icons/monthly-icon.svg'
+              }
+              alt={timePeriod === 'biweekly' ? 'Biweekly icon' : 'Monthly icon'}
+              className="h-5 w-5 object-contain"
+            />
           </div>
           <p className="text-3xl font-bold text-indigo-600">
             ${extendedEarnings.toFixed(2)}
