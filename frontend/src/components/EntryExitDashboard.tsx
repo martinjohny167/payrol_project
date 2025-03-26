@@ -563,9 +563,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     scales: {
       y: {
         beginAtZero: true,
-        max: selectedJobId === null && filteredJobId === null ? 14 : 10, // Add 4h extra padding only in total view
+        max: 12,
         border: {
-          display: false, // No axis line in the example
+          display: false,
         },
         grid: {
           display: true,
@@ -575,16 +575,16 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           drawBorder: false,
         },
         ticks: {
-          padding: 10,
-          stepSize: 2, // 2h intervals as shown in the example
+          padding: 8,
+          stepSize: 4, // 4h intervals
           callback: (value: number) => `${value}h`,
           color: '#999',
           font: {
-            size: 12,
+            size: 11,
             family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
           }
         },
-        stacked: selectedJobId === null // Use stacked bars for multiple jobs
+        stacked: selectedJobId === null
       },
       x: {
         border: {
@@ -607,10 +607,10 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     },
     layout: {
       padding: {
-        left: 10,
-        right: 25, // Increased right padding for legend
-        top: 16, // Increased top padding to accommodate dots
-        bottom: 10
+        left: 8,
+        right: 20,
+        top: 12,
+        bottom: 8
       }
     },
     elements: {
@@ -621,9 +621,9 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         hitRadius: 8,
       }
     },
-    barThickness: 40, // Makes bars wider like in the example
-    barPercentage: 0.7, // Controls bar width
-    categoryPercentage: 0.8, // Controls spacing between bars
+    barThickness: 32, // Slightly thinner bars
+    barPercentage: 0.65, // Controls bar width
+    categoryPercentage: 0.7, // Controls spacing between bars
   };
   
   // Calculate total stats for the selected time range
@@ -780,7 +780,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         <h2 className="text-xl font-semibold text-gray-800">Hours per Day</h2>
       </div>
       <div className="dashboard-content">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-3">
           {selectedJobId === null && dailyStats.length > 0 && (
             <div className="flex flex-wrap justify-end gap-3 items-center">
               {renderJobLegend()}
@@ -790,84 +790,88 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         
         {dailyStats.length > 0 ? (
           <>
-            <div className={`mb-6 transition-all duration-300 transform perspective-1000 ${flipClass}`}>
-              <div className="h-72 bg-white p-2 rounded-lg">
-                <Bar data={prepareChartData()} options={{
-                  ...chartOptions,
-                  plugins: {
-                    ...chartOptions.plugins,
-                    legend: {
-                      ...chartOptions.plugins.legend,
-                      display: false // Hide the built-in legend since we're creating our own
+            <div className={`mb-3 transition-all duration-300 transform perspective-1000 ${flipClass}`}>
+              <div className="h-52 bg-white p-2 rounded-lg">
+                <div style={{ height: '180px' }}>
+                  <Bar data={prepareChartData()} options={{
+                    ...chartOptions,
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                      ...chartOptions.plugins,
+                      legend: {
+                        ...chartOptions.plugins.legend,
+                        display: false // Hide the built-in legend since we're creating our own
+                      }
                     }
-                  }
-                }} />
+                  }} />
+                </div>
               </div>
             </div>
             
-            <div className={`grid grid-cols-3 gap-4 transform perspective-1000 ${flipClass} ${isCardFlipping ? 'animate-card-flip' : ''}`}>
+            <div className={`grid grid-cols-3 gap-2 transform perspective-1000 ${flipClass} ${isCardFlipping ? 'animate-card-flip' : ''}`}>
               {/* First card - Daily Average or Selected Day Hours */}
-              <div className={`bg-gray-50 p-4 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 0 ? 'shadow-md bg-white' : ''}`}>
+              <div className={`bg-gray-50 p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 0 ? 'shadow-md bg-white' : ''}`}>
                 <div className={`${isCardFlipping ? 'animate-text-blur' : ''}`} style={{ animationDelay: '0ms' }}>
                   {selectedDay ? (
                     <>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">
+                      <h3 className="text-xs font-medium text-gray-500 mb-0.5">
                         {selectedJobId === null ? selectedDay.jobName : 'Today\'s Hours'}
                       </h3>
-                      <p className="text-2xl font-bold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
-                      <p className="text-xs text-blue-500 mt-1">{selectedDay.formattedDate}</p>
+                      <p className="text-xl font-bold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
+                      <p className="text-xs text-blue-500 mt-0.5">{selectedDay.formattedDate}</p>
                     </>
                   ) : (
                     <>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Daily Average</h3>
-                      <p className="text-2xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
-                      <p className="text-xs text-green-500 mt-1">{daysWorked} days worked</p>
+                      <h3 className="text-xs font-medium text-gray-500 mb-0.5">Daily Average</h3>
+                      <p className="text-xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
+                      <p className="text-xs text-green-500 mt-0.5">{daysWorked} days worked</p>
                     </>
                   )}
                 </div>
               </div>
               
               {/* Second card - Weekly Hours or Entry/Exit Times */}
-              <div className={`bg-gray-50 p-4 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 1 ? 'shadow-md bg-white' : ''}`}>
+              <div className={`bg-gray-50 p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 1 ? 'shadow-md bg-white' : ''}`}>
                 <div className={`${isCardFlipping ? 'animate-text-blur' : ''}`} style={{ animationDelay: '100ms' }}>
                   {selectedDay ? (
                     <>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Activity</h3>
+                      <h3 className="text-xs font-medium text-gray-500 mb-0.5">Recent Activity</h3>
                       <div className="flex flex-col">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500">Entry:</span>
-                          <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.entryTime)}</span>
+                          <span className="text-xs font-medium text-gray-900">{formatTime(selectedDay.entryTime)}</span>
                         </div>
-                        <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center justify-between mt-0.5">
                           <span className="text-xs text-gray-500">Exit:</span>
-                          <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.exitTime)}</span>
+                          <span className="text-xs font-medium text-gray-900">{formatTime(selectedDay.exitTime)}</span>
                         </div>
                       </div>
                     </>
                   ) : (
                     <>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Hours</h3>
-                      <p className="text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
-                      <p className="text-xs text-green-500 mt-1">This week</p>
+                      <h3 className="text-xs font-medium text-gray-500 mb-0.5">Weekly Hours</h3>
+                      <p className="text-xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
+                      <p className="text-xs text-green-500 mt-0.5">This week</p>
                     </>
                   )}
                 </div>
               </div>
               
               {/* Third card - Weekly Earnings or Day Earnings */}
-              <div className={`bg-gray-50 p-4 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 2 ? 'shadow-md bg-white' : ''}`}>
+              <div className={`bg-gray-50 p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ${activeCardIndex === 2 ? 'shadow-md bg-white' : ''}`}>
                 <div className={`${isCardFlipping ? 'animate-text-blur' : ''}`} style={{ animationDelay: '200ms' }}>
                   {selectedDay ? (
                     <>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Day Earnings</h3>
-                      <p className="text-2xl font-bold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
-                      <p className="text-xs text-green-500 mt-1">{selectedDay.hours.toFixed(1)}h worked</p>
+                      <h3 className="text-xs font-medium text-gray-500 mb-0.5">Day Earnings</h3>
+                      <p className="text-xl font-bold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
+                      <p className="text-xs text-green-500 mt-0.5">{selectedDay.hours.toFixed(1)}h worked</p>
                     </>
                   ) : (
                     <>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Earnings</h3>
-                      <p className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
-                      <p className="text-xs text-green-500 mt-1">{totalHours.toFixed(1)}h total</p>
+                      <h3 className="text-xs font-medium text-gray-500 mb-0.5">Weekly Earnings</h3>
+                      <p className="text-xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
+                      <p className="text-xs text-green-500 mt-0.5">{totalHours.toFixed(1)}h total</p>
                     </>
                   )}
                 </div>

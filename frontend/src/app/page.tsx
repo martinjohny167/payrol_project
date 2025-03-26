@@ -62,26 +62,37 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-blue-waves relative">
-      <div className="flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 w-full relative z-10 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-b from-[rgba(242,246,252,0.9)] to-[rgba(240,244,250,0.75)] backdrop-blur-xl px-6 py-4 rounded-2xl flex items-center mb-8 shadow-sm w-full max-w-2xl mx-auto">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mr-4 shadow-md">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    <main className="h-screen flex flex-col overflow-hidden bg-blue-waves relative">
+      <header className="w-full bg-gradient-to-b from-[rgba(242,246,252,0.8)] to-[rgba(240,244,250,0.65)] backdrop-blur-xl py-2 px-6 flex justify-between items-center z-20 relative">
+        <div className="flex items-center">
+          <h1 className="text-gray-800 text-2xl font-semibold tracking-tight">Payroll</h1>
+        </div>
+        <div className="flex-1 flex justify-center">
+          <JobSelector 
+            jobs={jobs} 
+            selectedJobId={selectedJobId} 
+            onJobSelect={setSelectedJobId} 
+          />
+        </div>
+        <div className="flex space-x-4">
+          <div className="w-7 h-7 header-button rounded-full flex items-center justify-center">
+            <svg viewBox="0 0 99.61 99.657" xmlns="http://www.w3.org/2000/svg" className="text-gray-700 h-4 w-4" aria-hidden="true">
+              <path fill="currentColor" d="M49.805 99.61c27.246 0 49.805-22.608 49.805-49.805C99.61 22.559 77.002 0 49.756 0 22.56 0 0 22.559 0 49.805c0 27.197 22.608 49.804 49.805 49.804Z"></path>
+              <path fill="#fff" d="M49.805 58.887c-2.54 0-3.955-1.416-4.004-4.004l-.635-26.612c-.049-2.587 1.856-4.443 4.59-4.443 2.686 0 4.688 1.904 4.639 4.492l-.684 26.563c-.049 2.636-1.465 4.004-3.906 4.004ZM49.805 75.244c-2.93 0-5.469-2.344-5.469-5.225 0-2.88 2.49-5.273 5.469-5.273 2.978 0 5.469 2.344 5.469 5.273 0 2.93-2.54 5.225-5.47 5.225Z"></path>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Payroll Dashboard</h1>
+          <div className="w-7 h-7 header-button rounded-full flex items-center justify-center">
+            <svg className="text-gray-700 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="w-7 h-7 header-button rounded-full flex items-center justify-center">
+            <svg className="text-gray-700 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </div>
-        
-        <JobSelector 
-          jobs={jobs} 
-          selectedJobId={selectedJobId} 
-          onJobSelect={setSelectedJobId} 
-        />
-      </div>
+      </header>
       
       <div className="wave-element wave-1"></div>
       <div className="wave-element wave-2"></div>
@@ -89,13 +100,10 @@ export default function Home() {
       <div className="wave-element wave-4"></div>
       <div className="wave-element wave-5"></div>
       
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="flex-1 p-3 overflow-hidden relative z-10">
+        <div className="h-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-3">
           <HoursDashboard selectedJobId={selectedJobId} />
           <EarningsDashboard selectedJobId={selectedJobId} />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <TimeActivity selectedJobId={selectedJobId} />
           <EntryExitDashboard selectedJobId={selectedJobId} />
         </div>

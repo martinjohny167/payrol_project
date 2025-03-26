@@ -9,23 +9,22 @@ interface JobSelectorProps {
   onJobSelect: (jobId: number | null) => void;
 }
 
-// Array of distinct colors for the job dots
+// Array of distinct colors for the job dots - iOS style frosted glass gradients
 const DOT_COLORS = [
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-yellow-500',
-  'bg-red-500',
-  'bg-indigo-500',
-  'bg-pink-500',
-  'bg-orange-500',
+  'bg-gradient-to-br from-[#007AFF]/80 to-[#0055FF]/80', // iOS Blue
+  'bg-gradient-to-br from-[#34C759]/80 to-[#32A852]/80', // iOS Green
+  'bg-gradient-to-br from-[#AF52DE]/80 to-[#9841C9]/80', // iOS Purple
+  'bg-gradient-to-br from-[#FF9500]/80 to-[#F27900]/80', // iOS Orange
+  'bg-gradient-to-br from-[#FF2D55]/80 to-[#E0234E]/80', // iOS Pink/Red
+  'bg-gradient-to-br from-[#5856D6]/80 to-[#4841BC]/80', // iOS Indigo
+  'bg-gradient-to-br from-[#FF3B30]/80 to-[#E0321C]/80', // iOS Red
+  'bg-gradient-to-br from-[#5AC8FA]/80 to-[#4095D6]/80', // iOS Light Blue
 ];
 
 export default function JobSelector({ jobs, selectedJobId, onJobSelect }: JobSelectorProps) {
-  // No need for local state, loading or error as we're getting jobs from the parent component
-
-  const handleJobSelect = (jobId: number | null) => {
-    onJobSelect(jobId);
+  // Get the first letter of a job name
+  const getFirstLetter = (name: string): string => {
+    return name.charAt(0).toUpperCase();
   };
 
   if (!jobs || jobs.length === 0) {
@@ -38,39 +37,44 @@ export default function JobSelector({ jobs, selectedJobId, onJobSelect }: JobSel
     );
   }
 
-  // Get the first letter of a job name
-  const getFirstLetter = (name: string): string => {
-    return name.charAt(0).toUpperCase();
-  };
-
   return (
-    <div className="bg-gradient-to-b from-[rgba(242,246,252,0.8)] to-[rgba(240,244,250,0.65)] backdrop-blur-xl p-3 rounded-xl shadow-sm mb-8 border border-[rgba(229,231,235,0.4)]">
-      <div className="flex space-x-4">
-        <button
-          onClick={() => handleJobSelect(null)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition duration-200 
-            ${selectedJobId === null 
-              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm transform scale-105' 
-              : 'text-gray-700 hover:bg-white/30'
-            }`}
-        >
-          All Jobs
-        </button>
+    <div className="flex items-center space-x-2">
+      {/* All Jobs button */}
+      <button
+        onClick={() => onJobSelect(null)}
+        className={`transition-all duration-500 flex items-center justify-center shadow-sm backdrop-blur-md border border-white/20
+          ${selectedJobId === null 
+            ? 'px-2 py-0.5 rounded-lg text-xs bg-gradient-to-r from-[#007AFF]/90 to-[#0055FF]/90 text-white min-w-[60px] dynamic-island-expand' 
+            : 'w-6 h-6 rounded-full bg-gradient-to-r from-[#007AFF]/60 to-[#0055FF]/60 text-white font-medium text-[10px] hover:opacity-100'
+          }`}
+        aria-label="Show all jobs"
+      >
+        {selectedJobId === null ? 'All Jobs' : 'ALL'}
+      </button>
+      
+      {/* Individual job dots/buttons */}
+      {jobs.map((job, index) => {
+        const baseColor = DOT_COLORS[index % DOT_COLORS.length];
+        const isSelected = selectedJobId === job.id;
         
-        {jobs.map((job) => (
+        return (
           <button
             key={job.id}
-            onClick={() => handleJobSelect(job.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition duration-200 
-              ${selectedJobId === job.id 
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm transform scale-105' 
-                : 'text-gray-700 hover:bg-white/30'
+            onClick={() => onJobSelect(job.id)}
+            className={`transition-all duration-500 flex items-center justify-center shadow-sm backdrop-blur-xl border border-white/20
+              ${isSelected 
+                ? 'px-2 py-0.5 rounded-lg text-xs text-white min-w-[60px] dynamic-island-expand' 
+                : 'w-6 h-6 rounded-full text-white font-medium text-[10px] hover:opacity-100'
+              } ${baseColor} ${
+                isSelected ? 'ring-1 ring-white/40 scale-110' : 'opacity-70 hover:scale-105 hover:opacity-90'
               }`}
+            aria-label={`Select ${job.name}`}
+            title={job.name}
           >
-            {job.name}
+            {isSelected ? job.name : getFirstLetter(job.name)}
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 } 
