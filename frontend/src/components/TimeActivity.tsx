@@ -15,7 +15,7 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJobForAction, setCurrentJobForAction] = useState<number | null>(null);
-  const [latestAction, setLatestAction] = useState<string | null>(null);
+  const [latestEntry, setLatestEntry] = useState<TimeEntry | null>(null);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
@@ -69,30 +69,23 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
       
       setTimeEntries(sortedEntries);
       
-      // Set the latest action text for the status display
-      if (selectedJobId !== null && sortedEntries.length > 0) {
-        const latestEntry = sortedEntries[0];
-        if (!!latestEntry.punch_in_time && !latestEntry.punch_out_time) {
-          // Currently clocked in
-          const punchInTime = format(new Date(latestEntry.punch_in_time), 'h:mm a');
-          setLatestAction(`Punched in at ${punchInTime}`);
-          setIsActive(true);
-        } else if (latestEntry.punch_out_time) {
-          // Most recently clocked out
-          const punchOutTime = format(new Date(latestEntry.punch_out_time), 'h:mm a');
-          setLatestAction(`Punched out at ${punchOutTime}`);
-          setIsActive(false);
-        } else {
-          setLatestAction(null);
-          setIsActive(false);
-        }
+      // Store the latest entry for reference
+      if (sortedEntries.length > 0) {
+        setLatestEntry(sortedEntries[0]);
+      } else {
+        setLatestEntry(null);
+      }
+      
+      // Check if there's an active session for the current job
+      if (selectedJobId !== null) {
+        const latestJobEntry = sortedEntries[0];
+        setIsActive(latestJobEntry && !!latestJobEntry.punch_in_time && !latestJobEntry.punch_out_time);
       } else {
         // In total view, check if any job has an active session
         const hasActiveSession = sortedEntries.some(entry => 
           !!entry.punch_in_time && !entry.punch_out_time
         );
         setIsActive(hasActiveSession);
-        setLatestAction(null); // Don't show latest action in total view
       }
       
       setLoading(false);
@@ -169,6 +162,21 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
     return job?.name || 'Unknown Job';
   };
 
+  // Get the most recent activity status text
+  const getLatestActivityStatus = () => {
+    if (!latestEntry) return "No recent activity";
+    
+    const jobName = getJobName(latestEntry.job_id);
+    
+    if (latestEntry.punch_in_time && !latestEntry.punch_out_time) {
+      return `Clocked in at ${format(new Date(latestEntry.punch_in_time), 'h:mm a')} for ${jobName}`;
+    } else if (latestEntry.punch_out_time) {
+      return `Clocked out at ${format(new Date(latestEntry.punch_out_time), 'h:mm a')} from ${jobName}`;
+    }
+    
+    return "Status unknown";
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse bg-white rounded-lg shadow-sm p-6">
@@ -190,8 +198,21 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-        {selectedJobId !== null && latestAction && (
-          <p className="text-sm text-gray-600">{latestAction}</p>
+        {selectedJobId === null ? (
+          <div className="text-sm text-gray-600 italic">
+            {getLatestActivityStatus()}
+          </div>
+        ) : (
+          <button
+            onClick={handleClockInOut}
+            className={`px-4 py-2 rounded-md font-medium ${
+              isActive
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            {isActive ? 'Clock Out' : 'Clock In'}
+          </button>
         )}
       </div>
 
