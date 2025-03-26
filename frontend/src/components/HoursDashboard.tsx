@@ -180,55 +180,55 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
   const flipClass = isFlipping ? 'animate-flip' : '';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 dashboard-panel">
-      <div className="flex items-center mb-4">
-        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center mr-3 text-white shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
+    <div className="dashboard-panel">
+      <div className="dashboard-header">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-gray-800">Working Hours</h2>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">This Week</h3>
-          <p className="text-3xl font-bold text-blue-600">
-            {weeklyHours.toFixed(1)}
-            <span className="text-lg font-normal text-blue-500 ml-1">hours</span>
-          </p>
-        </div>
-
-        <div 
-          onClick={toggleTimePeriod}
-          className={`bg-indigo-50 p-4 rounded-lg cursor-pointer hover:bg-indigo-100 transition-colors duration-200 relative perspective-1000 ${flipClass}`}
-        >
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {timePeriod === 'biweekly' ? 'Bi-Weekly' : 'Monthly'}
-            </h3>
-            <img 
-              src={timePeriod === 'biweekly' 
-                ? '/icons/biweekly-icon.svg' 
-                : '/icons/monthly-icon.svg'
-              }
-              alt={timePeriod === 'biweekly' ? 'Biweekly icon' : 'Monthly icon'}
-              className="h-5 w-5 object-contain"
-            />
+      <div className="dashboard-content">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">This Week</h3>
+            <p className="text-3xl font-bold text-blue-600">
+              {weeklyHours.toFixed(1)}
+              <span className="text-lg font-normal text-blue-500 ml-1">hours</span>
+            </p>
           </div>
-          <p className="text-3xl font-bold text-indigo-600">
-            {extendedHours.toFixed(1)}
-            <span className="text-lg font-normal text-indigo-500 ml-1">hours</span>
-          </p>
-        </div>
 
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Total Hours</h3>
-          <p className="text-3xl font-bold text-green-600">
-            {totalHours.toFixed(1)}
-            <span className="text-lg font-normal text-green-500 ml-1">hours</span>
-          </p>
+          <div 
+            onClick={toggleTimePeriod}
+            className={`bg-indigo-50 p-4 rounded-lg cursor-pointer hover:bg-indigo-100 transition-colors duration-200 relative perspective-1000 ${flipClass}`}
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {timePeriod === 'biweekly' ? 'Bi-Weekly' : 'Monthly'}
+              </h3>
+              <img 
+                src={timePeriod === 'biweekly' 
+                  ? '/icons/biweekly-icon.svg' 
+                  : '/icons/monthly-icon.svg'
+                }
+                alt={timePeriod === 'biweekly' ? 'Biweekly icon' : 'Monthly icon'}
+                className="h-5 w-5 object-contain"
+              />
+            </div>
+            <p className="text-3xl font-bold text-indigo-600">
+              {extendedHours.toFixed(1)}
+              <span className="text-lg font-normal text-indigo-500 ml-1">hours</span>
+            </p>
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Total Hours</h3>
+            <p className="text-3xl font-bold text-green-600">
+              {totalHours.toFixed(1)}
+              <span className="text-lg font-normal text-green-500 ml-1">hours</span>
+            </p>
+          </div>
         </div>
       </div>
     </div>
