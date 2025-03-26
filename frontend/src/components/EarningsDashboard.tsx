@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../app/api/apiClient';
 
 interface EarningsDashboardProps {
@@ -16,13 +16,27 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const prevTimePeriodRef = useRef<TimePeriod>(timePeriod);
 
   // Hardcoded user ID for demonstration
   const userId = 4;
 
   const toggleTimePeriod = () => {
-    setTimePeriod(prev => prev === 'biweekly' ? 'monthly' : 'biweekly');
+    setIsFlipping(true);
+    setTimeout(() => {
+      setTimePeriod(prev => prev === 'biweekly' ? 'monthly' : 'biweekly');
+    }, 150); // Switch halfway through the animation
+    
+    setTimeout(() => {
+      setIsFlipping(false);
+    }, 600); // Animation duration
   };
+
+  // Update reference for animation tracking
+  useEffect(() => {
+    prevTimePeriodRef.current = timePeriod;
+  }, [timePeriod]);
 
   const fetchEarnings = async () => {
     try {
@@ -113,6 +127,8 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
     );
   }
 
+  const flipClass = isFlipping ? 'animate-flip' : '';
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="mb-6">
@@ -129,7 +145,7 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
 
         <div 
           onClick={toggleTimePeriod}
-          className="bg-indigo-50 p-4 rounded-lg cursor-pointer hover:bg-indigo-100 transition-colors duration-200 relative"
+          className={`bg-indigo-50 p-4 rounded-lg cursor-pointer hover:bg-indigo-100 transition-colors duration-200 relative perspective-1000 ${flipClass}`}
         >
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
