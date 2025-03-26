@@ -220,13 +220,13 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       
       // Define job colors - use vibrant colors that work well together
       const jobColors = [
-        'rgba(66, 133, 244, 0.8)',   // Blue
-        'rgba(219, 68, 55, 0.8)',    // Red
-        'rgba(15, 157, 88, 0.8)',    // Green
-        'rgba(244, 180, 0, 0.8)',    // Yellow
-        'rgba(171, 71, 188, 0.8)',   // Purple
-        'rgba(255, 112, 67, 0.8)',   // Orange
-        'rgba(3, 169, 244, 0.8)'     // Light Blue
+        'rgba(0, 122, 255, 0.8)',   // iOS Blue
+        'rgba(255, 59, 48, 0.8)',    // iOS Red
+        'rgba(52, 199, 89, 0.8)',    // iOS Green
+        'rgba(255, 204, 0, 0.8)',    // iOS Yellow
+        'rgba(175, 82, 222, 0.8)',   // iOS Purple
+        'rgba(255, 149, 0, 0.8)',    // iOS Orange
+        'rgba(90, 200, 250, 0.8)'    // iOS Light Blue
       ];
       
       const jobDatasets = jobsInStats.map((jobId, index) => {
@@ -392,33 +392,37 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: selectedJobId === null, // Only show legend when viewing all jobs
+        display: selectedJobId === null,
         position: 'top' as const,
         labels: {
           usePointStyle: true,
-          boxWidth: 10,
-          padding: 15,
+          boxWidth: 8,
+          padding: 12,
           font: {
-            size: 11
+            size: 11,
+            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
           }
         }
       },
       title: {
-        display: false, // No title in the example
+        display: false,
       },
       tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         titleColor: '#333',
         bodyColor: '#333',
         titleFont: {
           weight: 'bold',
           size: 13,
+          family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
         },
         bodyFont: {
           size: 12,
+          family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
         },
         padding: 10,
-        borderColor: 'rgba(0, 0, 0, 0.1)',
+        cornerRadius: 10,
+        borderColor: 'rgba(0, 0, 0, 0.06)',
         borderWidth: 1,
         displayColors: true,
         callbacks: {
@@ -434,57 +438,59 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     scales: {
       y: {
         beginAtZero: true,
-        max: 10, // Based on the example showing up to 8h with some padding
+        max: 10,
         border: {
-          display: false, // No axis line in the example
+          display: false,
         },
         grid: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.05)',
+          color: 'rgba(0, 0, 0, 0.04)',
           drawTicks: false,
           lineWidth: 1,
           drawBorder: false,
         },
         ticks: {
           padding: 10,
-          stepSize: 2, // 2h intervals as shown in the example
+          stepSize: 2,
           callback: (value: number) => `${value}h`,
-          color: '#999',
+          color: '#8E8E93',
           font: {
-            size: 12,
+            size: 11,
+            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
           }
         },
-        stacked: selectedJobId === null // Use stacked bars only for all jobs view
+        stacked: selectedJobId === null
       },
       x: {
         border: {
-          display: false, // No axis line in the example
+          display: false,
         },
         grid: {
-          display: false, // No grid lines for x axis
+          display: false,
           drawBorder: false,
         },
         ticks: {
-          color: '#999',
+          color: '#8E8E93',
           font: {
-            size: 12,
+            size: 11,
+            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
           },
           padding: 5,
         },
-        stacked: selectedJobId === null // Use stacked bars only for all jobs view
+        stacked: selectedJobId === null
       }
     },
     layout: {
       padding: {
         left: 10,
         right: 10,
-        top: 10,
+        top: 15,
         bottom: 10
       }
     },
-    barThickness: 40, // Makes bars wider like in the example
-    barPercentage: 0.7, // Controls bar width
-    categoryPercentage: 0.8, // Controls spacing between bars
+    barThickness: 35,
+    barPercentage: 0.7,
+    categoryPercentage: 0.8,
   };
   
   // Calculate total stats for the selected time range
@@ -559,84 +565,145 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   const { totalHours, totalEarnings, daysWorked, avgHoursPerDay } = calculateTotalStats();
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Hours per Day</h2>
+        <h2 className="text-xl font-semibold text-gray-900" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>Hours per Day</h2>
       </div>
       
       {dailyStats.length > 0 ? (
         <>
           <div className="mb-6">
-            <div className="h-64 bg-white p-2 rounded-lg">
+            <div className="h-64 bg-white rounded-lg p-2">
               <Bar data={prepareChartData()} options={chartOptions} />
             </div>
           </div>
           
           <div className="grid grid-cols-3 gap-4">
             {/* First card - Daily Average or Selected Day Hours */}
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
+            <div className="bg-gray-50 p-4 rounded-xl transition-all duration-300" 
+              style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px' }}>
               {selectedDay ? (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
                     {selectedJobId === null ? selectedDay.jobName : 'Today\'s Hours'}
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900">{selectedDay.hours.toFixed(1)}h</p>
-                  <p className="text-xs text-blue-500 mt-1">{selectedDay.formattedDate}</p>
+                  <p className="text-2xl font-semibold text-gray-900" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {selectedDay.hours.toFixed(1)}h
+                  </p>
+                  <p className="text-xs text-[#007AFF] mt-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {selectedDay.formattedDate}
+                  </p>
                 </>
               ) : (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Daily Average</h3>
-                  <p className="text-2xl font-bold text-gray-900">{avgHoursPerDay.toFixed(1)}h</p>
-                  <p className="text-xs text-green-500 mt-1">{daysWorked} days worked</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    Daily Average
+                  </h3>
+                  <p className="text-2xl font-semibold text-gray-900" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {avgHoursPerDay.toFixed(1)}h
+                  </p>
+                  <p className="text-xs text-[#34C759] mt-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {daysWorked} days worked
+                  </p>
                 </>
               )}
             </div>
             
             {/* Second card - Weekly Hours or Entry/Exit Times */}
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
+            <div className="bg-gray-50 p-4 rounded-xl transition-all duration-300" 
+              style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px' }}>
               {selectedDay ? (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Activity</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    Recent Activity
+                  </h3>
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Entry:</span>
-                      <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.entryTime)}</span>
+                      <span className="text-xs text-gray-500" 
+                        style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                        Entry:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900" 
+                        style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                        {formatTime(selectedDay.entryTime)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-gray-500">Exit:</span>
-                      <span className="text-sm font-medium text-gray-900">{formatTime(selectedDay.exitTime)}</span>
+                      <span className="text-xs text-gray-500" 
+                        style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                        Exit:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900" 
+                        style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                        {formatTime(selectedDay.exitTime)}
+                      </span>
                     </div>
                   </div>
                 </>
               ) : (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Hours</h3>
-                  <p className="text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
-                  <p className="text-xs text-green-500 mt-1">This week</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    Weekly Hours
+                  </h3>
+                  <p className="text-2xl font-semibold text-gray-900" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {totalHours.toFixed(1)}h
+                  </p>
+                  <p className="text-xs text-[#34C759] mt-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    This week
+                  </p>
                 </>
               )}
             </div>
             
             {/* Third card - Weekly Earnings or Day Earnings */}
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-300">
+            <div className="bg-gray-50 p-4 rounded-xl transition-all duration-300" 
+              style={{ boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px' }}>
               {selectedDay ? (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Day Earnings</h3>
-                  <p className="text-2xl font-bold text-green-600">${selectedDay.earnings.toFixed(2)}</p>
-                  <p className="text-xs text-green-500 mt-1">{selectedDay.hours.toFixed(1)}h worked</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    Day Earnings
+                  </h3>
+                  <p className="text-2xl font-semibold text-[#34C759]" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    ${selectedDay.earnings.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-[#34C759] mt-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {selectedDay.hours.toFixed(1)}h worked
+                  </p>
                 </>
               ) : (
                 <>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Weekly Earnings</h3>
-                  <p className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
-                  <p className="text-xs text-green-500 mt-1">{totalHours.toFixed(1)}h total</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    Weekly Earnings
+                  </h3>
+                  <p className="text-2xl font-semibold text-[#34C759]" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    ${totalEarnings.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-[#34C759] mt-1" 
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                    {totalHours.toFixed(1)}h total
+                  </p>
                 </>
               )}
             </div>
           </div>
         </>
       ) : (
-        <p className="text-gray-500">
+        <p className="text-gray-500" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
           {selectedJobId === null ? 'No statistics available' : 'No statistics available for this job'}
         </p>
       )}
