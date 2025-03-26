@@ -426,14 +426,20 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     plugins: {
       legend: {
         display: selectedJobId === null, // Only show legend in all jobs view
-        position: 'top' as const,
+        position: 'right' as const,
+        align: 'center' as const,
         labels: {
           boxWidth: 12,
           padding: 10,
           font: {
-            size: 11
-          }
-        }
+            size: 11,
+            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          },
+          usePointStyle: true,
+          pointStyle: 'circle'
+        },
+        maxWidth: 120,
+        fullSize: false
       },
       title: {
         display: false, // No title in the example
@@ -512,7 +518,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     layout: {
       padding: {
         left: 10,
-        right: 10,
+        right: 25, // Increased right padding for legend
         top: 16, // Increased top padding to accommodate dots
         bottom: 10
       }
@@ -613,7 +619,7 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       {dailyStats.length > 0 ? (
         <>
           <div className={`mb-6 transition-all duration-300 transform perspective-1000 ${flipClass}`}>
-            <div className="h-64 bg-white p-2 rounded-lg">
+            <div className="h-72 bg-white p-2 rounded-lg">
               <Bar data={prepareChartData()} options={chartOptions} />
             </div>
           </div>
