@@ -38,9 +38,12 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
         apiMethod(userId)
           .then(res => {
             const total = res.data.jobs.reduce((sum: number, job: any) => {
-              // Access the correct property based on what we're switching to
-              const prop = newPeriod === 'biweekly' ? 'biweekly_hours' : 'monthly_hours';
-              return sum + (job[prop] || 0);
+              if (newPeriod === 'biweekly' && 'biweekly_hours' in job) {
+                return sum + (job.biweekly_hours || 0);
+              } else if (newPeriod === 'monthly' && 'monthly_hours' in job) {
+                return sum + (job.monthly_hours || 0);
+              }
+              return sum;
             }, 0);
             setExtendedHours(total);
           })
@@ -53,8 +56,11 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
           
         apiMethod(userId, selectedJobId)
           .then(res => {
-            const prop = newPeriod === 'biweekly' ? 'biweekly_hours' : 'monthly_hours';
-            setExtendedHours(res.data[prop] || 0);
+            if (newPeriod === 'biweekly' && 'biweekly_hours' in res.data) {
+              setExtendedHours(res.data.biweekly_hours || 0);
+            } else if (newPeriod === 'monthly' && 'monthly_hours' in res.data) {
+              setExtendedHours(res.data.monthly_hours || 0);
+            }
           })
           .catch((err: Error) => console.error('Error updating extended hours:', err));
       }
@@ -91,9 +97,14 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
           : await api.hours.getMonthly(userId);
         
         // Sum up all extended hours
-        const extendedTotal = timePeriod === 'biweekly'
-          ? extendedRes.data.jobs.reduce((sum, job) => sum + (job.biweekly_hours || 0), 0)
-          : extendedRes.data.jobs.reduce((sum, job) => sum + (job.monthly_hours || 0), 0);
+        const extendedTotal = extendedRes.data.jobs.reduce((sum, job) => {
+          if (timePeriod === 'biweekly' && 'biweekly_hours' in job) {
+            return sum + (job.biweekly_hours || 0);
+          } else if (timePeriod === 'monthly' && 'monthly_hours' in job) {
+            return sum + (job.monthly_hours || 0);
+          }
+          return sum;
+        }, 0);
           
         // Sum up total hours
         const totalAllHours = totalRes.data.jobs.reduce((sum, job) => 
@@ -115,8 +126,8 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
         setWeeklyHours(weeklyJob?.weekly_hours || 0);
         setExtendedHours(
           timePeriod === 'biweekly' 
-            ? (extendedRes.data.biweekly_hours || 0)
-            : (extendedRes.data.monthly_hours || 0)
+            ? ('biweekly_hours' in extendedRes.data ? extendedRes.data.biweekly_hours : 0)
+            : ('monthly_hours' in extendedRes.data ? extendedRes.data.monthly_hours : 0)
         );
         setTotalHours(totalJob?.total_hours || 0);
       }
