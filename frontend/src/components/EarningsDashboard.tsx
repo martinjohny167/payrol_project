@@ -38,9 +38,12 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
         apiMethod(userId)
           .then(res => {
             const total = res.data.jobs.reduce((sum: number, job: any) => {
-              // Access the correct property based on what we're switching to
-              const prop = newPeriod === 'biweekly' ? 'biweekly_earnings' : 'monthly_earnings';
-              return sum + (job[prop] || 0);
+              if (newPeriod === 'biweekly' && 'biweekly_earnings' in job) {
+                return sum + (job.biweekly_earnings || 0);
+              } else if (newPeriod === 'monthly' && 'monthly_earnings' in job) {
+                return sum + (job.monthly_earnings || 0);
+              }
+              return sum;
             }, 0);
             setExtendedEarnings(total);
           })
@@ -53,8 +56,11 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
           
         apiMethod(userId, selectedJobId)
           .then(res => {
-            const prop = newPeriod === 'biweekly' ? 'biweekly_earnings' : 'monthly_earnings';
-            setExtendedEarnings(res.data[prop] || 0);
+            if (newPeriod === 'biweekly' && 'biweekly_earnings' in res.data) {
+              setExtendedEarnings(res.data.biweekly_earnings || 0);
+            } else if (newPeriod === 'monthly' && 'monthly_earnings' in res.data) {
+              setExtendedEarnings(res.data.monthly_earnings || 0);
+            }
           })
           .catch((err: Error) => console.error('Error updating extended earnings:', err));
       }
@@ -70,12 +76,12 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
     prevTimePeriodRef.current = timePeriod;
   }, [timePeriod]);
 
-  // Add a custom effect to optimize the timePeriod toggling
+  // Add a custom effect for timePeriod as a signal for toggle action
+  // without causing refetches (optimization)
   useEffect(() => {
-    // This is an optimization to prevent full refetches when toggling timePeriod
-    // The actual toggle logic happens in the toggleTimePeriod function
-    // This ensures React doesn't complain about missing dependencies
-    // while still allowing us to optimize performance
+    // This empty effect ensures React doesn't complain about missing dependencies
+    // The actual toggle logic happens in toggleTimePeriod which updates only what's needed
+    // This approach prevents unnecessary refetches while maintaining component lifecycle
   }, [timePeriod]);
 
   const fetchEarnings = async () => {
@@ -100,10 +106,15 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
           : await api.earnings.getMonthly(userId);
           
         // Calculate total extended earnings
-        const extendedTotal = timePeriod === 'biweekly'
-          ? extendedRes.data.jobs.reduce((sum, job) => sum + (job.biweekly_earnings || 0), 0)
-          : extendedRes.data.jobs.reduce((sum, job) => sum + (job.monthly_earnings || 0), 0);
-          
+        const extendedTotal = extendedRes.data.jobs.reduce((sum, job) => {
+          if (timePeriod === 'biweekly' && 'biweekly_earnings' in job) {
+            return sum + (job.biweekly_earnings || 0);
+          } else if (timePeriod === 'monthly' && 'monthly_earnings' in job) {
+            return sum + (job.monthly_earnings || 0);
+          }
+          return sum;
+        }, 0);
+        
         // Calculate total earnings across all jobs
         const totalAllEarnings = totalRes.data.jobs.reduce(
           (sum, job) => sum + (job.total_earnings || 0), 0
@@ -125,8 +136,8 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
         setWeeklyEarnings(weeklyRes.data.weekly_earnings || 0);
         setExtendedEarnings(
           timePeriod === 'biweekly'
-            ? (extendedRes.data.biweekly_earnings || 0)
-            : (extendedRes.data.monthly_earnings || 0)
+            ? ('biweekly_earnings' in extendedRes.data ? extendedRes.data.biweekly_earnings : 0)
+            : ('monthly_earnings' in extendedRes.data ? extendedRes.data.monthly_earnings : 0)
         );
         setTotalEarnings(totalRes.data.total_earnings || 0);
       }
@@ -140,13 +151,13 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
     }
   };
 
-  // Keep the main data fetching effect with both dependencies
+  // Perform full refetch only when job selection changes
   useEffect(() => {
     fetchEarnings();
     // Refresh data every 5 minutes
     const interval = setInterval(fetchEarnings, 300000);
     return () => clearInterval(interval);
-  }, [selectedJobId, timePeriod]);
+  }, [selectedJobId]); // Intentionally omit timePeriod to prevent full refetch on toggle
 
   if (loading) {
     return (

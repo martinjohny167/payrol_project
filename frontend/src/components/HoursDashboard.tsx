@@ -141,21 +141,21 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
     }
   };
 
-  // Add a custom effect to optimize the timePeriod toggling
+  // Add a custom effect for timePeriod as a signal for toggle action
+  // without causing refetches (optimization)
   useEffect(() => {
-    // This is an optimization to prevent full refetches when toggling timePeriod
-    // The actual toggle logic happens in the toggleTimePeriod function
-    // This ensures React doesn't complain about missing dependencies
-    // while still allowing us to optimize performance
+    // This empty effect ensures React doesn't complain about missing dependencies
+    // The actual toggle logic happens in toggleTimePeriod which updates only what's needed
+    // This approach prevents unnecessary refetches while maintaining component lifecycle
   }, [timePeriod]);
 
-  // Keep the main data fetching effect with both dependencies
+  // Perform full refetch only when job selection changes
   useEffect(() => {
     fetchHours();
     // Refresh data every 5 minutes
     const interval = setInterval(fetchHours, 300000);
     return () => clearInterval(interval);
-  }, [selectedJobId, timePeriod]);
+  }, [selectedJobId]); // Intentionally omit timePeriod to prevent full refetch on toggle
 
   if (loading) {
     return (
