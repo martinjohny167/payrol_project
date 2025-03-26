@@ -180,9 +180,15 @@ export default function HoursDashboard({ selectedJobId }: HoursDashboardProps) {
   const flipClass = isFlipping ? 'animate-flip' : '';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Hours Summary</h2>
+    <div className="bg-white rounded-lg shadow-sm p-6 dashboard-panel">
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center mr-3 text-white shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-800">Working Hours</h2>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

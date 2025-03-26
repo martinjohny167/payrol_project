@@ -9,14 +9,14 @@ interface JobSelectorProps {
 
 // Array of distinct colors for the job dots
 const DOT_COLORS = [
-  'bg-blue-500 hover:bg-blue-600',
-  'bg-green-500 hover:bg-green-600',
-  'bg-purple-500 hover:bg-purple-600',
-  'bg-yellow-500 hover:bg-yellow-600',
-  'bg-red-500 hover:bg-red-600',
-  'bg-indigo-500 hover:bg-indigo-600',
-  'bg-pink-500 hover:bg-pink-600',
-  'bg-orange-500 hover:bg-orange-600',
+  'bg-blue-500',
+  'bg-green-500',
+  'bg-purple-500',
+  'bg-yellow-500',
+  'bg-red-500',
+  'bg-indigo-500',
+  'bg-pink-500',
+  'bg-orange-500',
 ];
 
 export default function JobSelector({ onJobSelect }: JobSelectorProps) {
@@ -70,14 +70,14 @@ export default function JobSelector({ onJobSelect }: JobSelectorProps) {
   };
 
   return (
-    <div className="flex items-center justify-center space-x-3 my-4">
+    <div className="flex items-center justify-center space-x-3 my-4 bg-white/20 backdrop-blur-lg py-3 px-5 rounded-full shadow-md">
       {/* Total button */}
       <button
         onClick={() => setSelectedJob(null)}
-        className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs focus:outline-none transition-all duration-200 ${
+        className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs transition-all duration-300 ${
           selectedJob === null 
-            ? 'bg-gradient-to-r from-purple-500 to-blue-500 ring-2 ring-gray-200 shadow-md' 
-            : 'bg-gradient-to-r from-purple-500/60 to-blue-500/60 hover:from-purple-500 hover:to-blue-500'
+            ? 'bg-gradient-to-r from-purple-500 to-blue-500 transform scale-110 shadow-md' 
+            : 'bg-gradient-to-r from-purple-500/80 to-blue-500/80 hover:scale-105'
         }`}
         title="Total (All Jobs)"
         aria-label="Show total for all jobs"
@@ -88,17 +88,17 @@ export default function JobSelector({ onJobSelect }: JobSelectorProps) {
       {/* Individual job buttons */}
       {jobs.map((job, index) => {
         // Get color from array, or use a default if we run out of colors
-        const colorClass = DOT_COLORS[index % DOT_COLORS.length];
-        const baseColor = colorClass.split(' ')[0]; // Get just the base color class
+        const baseColor = DOT_COLORS[index % DOT_COLORS.length];
+        const isSelected = selectedJob === job.id;
         
         return (
           <button
             key={job.id}
             onClick={() => setSelectedJob(job.id)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs focus:outline-none transition-all duration-200 ${
-              selectedJob === job.id 
-                ? `${baseColor} ring-2 ring-gray-200 shadow-md` 
-                : `${baseColor}/60 hover:${baseColor}`
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-xs transition-all duration-300 ${baseColor} ${
+              isSelected 
+                ? 'transform scale-110 shadow-md' 
+                : 'opacity-80 hover:opacity-100 hover:scale-105'
             }`}
             title={job.name}
             aria-label={`Select ${job.name}`}

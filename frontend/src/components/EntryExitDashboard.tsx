@@ -278,29 +278,22 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
         const isHighlighted = filteredJobId === jobId;
         const baseColor = jobColors[index % jobColors.length];
         
-        // For non-highlighted jobs when a job is selected, use faded colors
+        // For non-highlighted jobs, use slightly faded colors
         let backgroundColor = baseColor;
         let pointBackgroundColor = baseColor;
         let borderWidth = 0;
         
-        // If a job is filtered, only show that job's bars
+        // If a job is filtered, keep all jobs visible but highlight the selected one
         if (filteredJobId !== null) {
           if (!isHighlighted) {
-            // Hide non-highlighted jobs completely when filtering
-            return {
-              label: getJobName(jobId),
-              data: dayLabels.map(day => 0), // Zero data to hide bars
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-              borderWidth: 0,
-              borderRadius: 4,
-              borderSkipped: false,
-              pointRadius: 0, // Hide points
-              order: index
-            };
+            // Make non-highlighted jobs partially transparent
+            backgroundColor = baseColor.replace('0.85', '0.3');
+            pointBackgroundColor = backgroundColor;
           } else {
             // The highlighted job gets full opacity and a border
-            borderWidth = 1;
+            borderWidth = 2;
+            backgroundColor = baseColor.replace('0.85', '0.95');
+            pointBackgroundColor = baseColor.replace('0.85', '1');
           }
         }
         
@@ -316,17 +309,22 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
           pointRadius: function(context: any) {
             const index = context.dataIndex;
             const value = context.dataset.data[index];
-            // Only show points for highlighted job or if no job is highlighted
-            if (filteredJobId === null || isHighlighted) {
-              return value > 0 ? 4 : 0; // Slightly larger points for better visibility
+            // Show points for all jobs, but make highlighted ones larger
+            if (value > 0) {
+              return isHighlighted ? 5 : 3;
             }
             return 0;
           },
           pointBackgroundColor: pointBackgroundColor,
           pointBorderColor: 'white',
-          pointBorderWidth: 1.5,
+          pointBorderWidth: isHighlighted ? 2 : 1,
           // Move highlighted job to front
-          order: isHighlighted ? -1 : index
+          order: isHighlighted ? -1 : index,
+          // Apply scale transform to highlighted job
+          ...(isHighlighted && {
+            barPercentage: 0.8, // Make highlighted bars slightly wider
+            categoryPercentage: 0.85
+          })
         };
       });
       
@@ -716,9 +714,6 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     const recentStats = sortedStats.slice(-getDaysToShow());
     const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
     
-    // Array of shape types for each job
-    const jobShapes = ['circle', 'triangle', 'rect', 'star', 'cross', 'diamond', 'rectRounded', 'rectRot'];
-
     return (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         {jobsInStats.map((jobId, index) => {
@@ -731,17 +726,21 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
             <button
               key={jobId}
               onClick={() => handleJobLegendClick(jobId)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
-                isActive ? 'bg-gray-100 font-medium shadow-sm' : 'hover:bg-gray-50'
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 ${
+                isActive ? 'bg-gray-100 shadow-sm transform scale-105' : 'hover:bg-gray-50'
               }`}
             >
               <span 
-                className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-medium`}
-                style={{ backgroundColor: isActive ? baseColor : baseColor.replace('0.85', '0.6') }}
+                className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-medium transition-transform duration-300 ${
+                  isActive ? 'transform scale-110 shadow-sm' : ''
+                }`}
+                style={{ 
+                  backgroundColor: baseColor.replace('0.85', isActive ? '1' : '0.7'),
+                }}
               >
                 {firstLetter}
               </span>
-              <span className={isActive ? 'text-gray-900' : 'text-gray-600'}>
+              <span className={`transition-colors duration-300 ${isActive ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
                 {jobName}
               </span>
             </button>
@@ -771,9 +770,19 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
   const { totalHours, totalEarnings, daysWorked, avgHoursPerDay } = calculateTotalStats();
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="bg-white rounded-lg shadow-sm p-6 dashboard-panel">
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center mr-3 text-white shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+            <line x1="3" y1="20" x2="21" y2="20"></line>
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-800">Hours per Day</h2>
+      </div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Hours per Day</h2>
         {selectedJobId === null && dailyStats.length > 0 && (
           <div className="flex flex-wrap justify-end gap-3 items-center">
             {renderJobLegend()}

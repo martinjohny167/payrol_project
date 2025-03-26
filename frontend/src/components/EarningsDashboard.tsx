@@ -182,9 +182,15 @@ export default function EarningsDashboard({ selectedJobId }: EarningsDashboardPr
   const flipClass = isFlipping ? 'animate-flip' : '';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Earnings Summary</h2>
+    <div className="bg-white rounded-lg shadow-sm p-6 dashboard-panel">
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center mr-3 text-white shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-800">Earnings Summary</h2>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
