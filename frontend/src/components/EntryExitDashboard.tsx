@@ -179,6 +179,15 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     return job?.name || 'Unknown Job';
   };
   
+  // Define colors for different jobs
+  const jobColors = [
+    'rgba(66, 133, 244, 0.85)',  // Blue
+    'rgba(219, 68, 55, 0.85)',   // Red
+    'rgba(15, 157, 88, 0.85)',   // Green
+    'rgba(244, 180, 0, 0.85)',   // Yellow
+    'rgba(171, 71, 188, 0.85)',  // Purple
+  ];
+  
   // Calculate days to show based on time range filter
   const getDaysToShow = (): number => {
     return timeRangeFilter === 'weekly' ? 7 : 30;
@@ -236,15 +245,6 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
       
       // Get all unique job IDs
       const jobsInStats = Array.from(new Set(recentStats.map(stat => stat.job_id)));
-      
-      // Define colors for different jobs
-      const jobColors = [
-        'rgba(66, 133, 244, 0.85)',  // Blue
-        'rgba(219, 68, 55, 0.85)',   // Red
-        'rgba(15, 157, 88, 0.85)',   // Green
-        'rgba(244, 180, 0, 0.85)',   // Yellow
-        'rgba(171, 71, 188, 0.85)',  // Purple
-      ];
       
       // Create a dataset for each job
       const datasets = jobsInStats.map((jobId, index) => {
@@ -614,13 +614,38 @@ export default function EntryExitDashboard({ selectedJobId }: EntryExitDashboard
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Hours per Day</h2>
+        {selectedJobId === null && dailyStats.length > 0 && (
+          <div className="flex flex-wrap justify-end gap-3">
+            {/* Generate legend manually to place it at heading level */}
+            {Array.from(new Set(dailyStats.map(stat => stat.job_id))).map((jobId, index) => {
+              return (
+                <div key={jobId} className="flex items-center">
+                  <span 
+                    className="inline-block w-3 h-3 rounded-full mr-2"
+                    style={{ backgroundColor: jobColors[index % jobColors.length] }}
+                  ></span>
+                  <span className="text-xs font-medium">{getJobName(jobId)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       
       {dailyStats.length > 0 ? (
         <>
           <div className={`mb-6 transition-all duration-300 transform perspective-1000 ${flipClass}`}>
             <div className="h-72 bg-white p-2 rounded-lg">
-              <Bar data={prepareChartData()} options={chartOptions} />
+              <Bar data={prepareChartData()} options={{
+                ...chartOptions,
+                plugins: {
+                  ...chartOptions.plugins,
+                  legend: {
+                    ...chartOptions.plugins.legend,
+                    display: false // Hide the built-in legend since we're creating our own
+                  }
+                }
+              }} />
             </div>
           </div>
           
