@@ -190,21 +190,9 @@ export default function TimeActivity({ selectedJobId }: TimeActivityProps) {
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-        <div className="flex items-center gap-3">
-          {selectedJobId !== null && latestAction && (
-            <p className="text-sm text-gray-600">{latestAction}</p>
-          )}
-          <button
-            onClick={handleClockInOut}
-            className={`px-4 py-2 rounded-md font-medium ${
-              isActive
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-          >
-            {isActive ? 'Clock Out' : 'Clock In'}
-          </button>
-        </div>
+        {selectedJobId !== null && latestAction && (
+          <p className="text-sm text-gray-600">{latestAction}</p>
+        )}
       </div>
 
       <div className="space-y-4">
