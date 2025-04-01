@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLog API Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WorkLog API Dashboard</h1>
+        </header>
+
+        <div class="user-input">
+            <div class="input-group">
+                <label for="userId">User ID:</label>
+                <input type="number" id="userId" value="1">
+            </div>
+            <div class="input-group">
+                <label for="jobId">Job ID (optional):</label>
+                <input type="number" id="jobId" placeholder="Leave empty for all jobs">
+            </div>
+            <button id="loadData" class="primary-btn">Load Data</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="status">Job Status</button>
+            <button class="tab-btn" data-tab="stats">Total Hours & Earnings</button>
+            <button class="tab-btn" data-tab="periodic">Periodic Totals</button>
+            <button class="tab-btn" data-tab="recent">Recent Activities</button>
+            <button class="tab-btn" data-tab="shifts">Shift Details</button>
+            <button class="tab-btn" data-tab="jobs">Jobs List</button>
+        </div>
+
+        <div class="period-selector" id="periodicOptions" style="display: none;">
+            <h3>Select Period:</h3>
+            <div class="period-buttons">
+                <button class="period-btn active" data-period="day">Daily</button>
+                <button class="period-btn" data-period="week">Weekly</button>
+                <button class="period-btn" data-period="biweekly">Bi-Weekly</button>
+                <button class="period-btn" data-period="month">Monthly</button>
+                <button class="period-btn" data-period="year">Yearly</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="responseArea">
+                <div class="placeholder">Select a tab and click "Load Data" to see API responses</div>
+            </div>
+            <div id="formattedOutput">
+                <h2>Formatted Output</h2>
+                <div id="outputContent" class="output-content"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
